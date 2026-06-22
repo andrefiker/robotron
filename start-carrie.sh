@@ -21,6 +21,11 @@ if [ -f "$APP_DIR/.env" ]; then
   set +a
 fi
 
+if command -v pactl >/dev/null 2>&1; then
+  pactl set-source-mute @DEFAULT_SOURCE@ 0 >/dev/null 2>&1 || true
+  pactl set-source-volume @DEFAULT_SOURCE@ "${ROBOTRON_MIC_VOLUME:-85%}" >/dev/null 2>&1 || true
+fi
+
 start_detached() {
   local log_file="$1"
   shift
