@@ -57,6 +57,11 @@
     pointer-events: none;
   }
   .commandPanel { padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; }
+  .commandPanel::-webkit-scrollbar, .log::-webkit-scrollbar { width: 10px; }
+  .commandPanel::-webkit-scrollbar-track, .log::-webkit-scrollbar-track { background: rgba(7,10,15,.75); }
+  .commandPanel::-webkit-scrollbar-thumb, .log::-webkit-scrollbar-thumb {
+    background: rgba(122,162,247,.34); border: 2px solid rgba(7,10,15,.75); border-radius: 999px;
+  }
   .inputDock { grid-column: 1 / -1; padding: 14px; }
   .panelTitle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 4px; }
   .panelTitle h1 { color: #eef6ff; font-size: 22px; font-weight: 800; line-height: 1.05; }
