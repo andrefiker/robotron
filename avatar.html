@@ -404,11 +404,11 @@
         <div><label>Web-search proxy URL</label><input type="text" id="searchUrl" class="field" value="http://localhost:8765" /></div>
         <div class="grid2" style="margin-top:10px">
           <div><label>ElevenLabs API key</label><input type="password" id="elKey" class="field" placeholder="optional" /></div>
-          <div><label>ElevenLabs voice</label><select id="elVoiceSelect" class="field"><option value="">Load voices from ElevenLabs</option></select></div>
+          <div><label>ElevenLabs voice</label><select id="elVoiceSelect" class="field"></select></div>
         </div>
         <div class="grid2" style="margin-top:10px">
           <div><label>ElevenLabs Voice ID</label><input type="text" id="elVoice" class="field" value="JBFqnCBsd6RMkjVDRZzb" /></div>
-          <button class="secondary" id="loadElevenVoices" type="button" style="align-self:end">Load voices</button>
+          <button class="secondary" id="useElevenVoice" type="button" style="align-self:end">Use selected voice</button>
         </div>
         <div style="margin-top:10px"><label>Local TTS proxy URL</label><input type="text" id="ttsUrl" class="field" value="http://localhost:8766" /></div>
         <div style="margin-top:10px"><label>Browser voice</label><select id="voiceSel" class="field"></select></div>
@@ -487,6 +487,19 @@ let handsFree = CFG.hf === '1';
 let ttsReady = false;   // set true once a local Piper proxy answers
 let lastSources = [];
 const transcriptTurns = [];
+const ELEVEN_PRESET_VOICES = [
+  { name: 'Adam', id: 'pNInz6obpgDQGcFmaJgB', note: 'deep American male' },
+  { name: 'Antoni', id: 'ErXwobaYiN019PkySvjV', note: 'warm American male' },
+  { name: 'Josh', id: 'TxGEqnHWrfWFTfGW9XjX', note: 'deep clear male' },
+  { name: 'Arnold', id: 'VR6AewLTigWG4xSOukaG', note: 'crisp narrator male' },
+  { name: 'Rachel', id: '21m00Tcm4TlvDq8ikWAM', note: 'calm American female' },
+  { name: 'Bella', id: 'EXAVITQu4vr4xnSDxMaL', note: 'soft friendly female' },
+  { name: 'Elli', id: 'MF3mGyEYCl7XYWbV9V6O', note: 'expressive female' },
+  { name: 'Sam', id: 'yoZ06aMxZJJ28mfd3POQ', note: 'raspy American male' },
+  { name: 'Serena', id: 'pMsXgVXv3BLzUgSXRplE', note: 'pleasant American female' },
+  { name: 'Thomas', id: 'GBv7mTt0atIp3Br8iCZE', note: 'calm American male' },
+  { name: 'Default', id: 'JBFqnCBsd6RMkjVDRZzb', note: 'ElevenLabs default' },
+];
 
 function setDot(name, mode, text) {
   const dot = $(name + 'Dot'), label = $(name + 'State');
@@ -546,59 +559,23 @@ function syncElevenVoiceSelect() {
   const input = $('elVoice');
   if (!sel || !input) return;
   const id = input.value.trim() || CFG.elVoice || 'JBFqnCBsd6RMkjVDRZzb';
-  const label = CFG.elVoiceName ? `${CFG.elVoiceName} (${id})` : `Saved voice (${id})`;
+  if (!sel.options.length) {
+    ELEVEN_PRESET_VOICES.forEach(v => {
+      const o = document.createElement('option');
+      o.value = v.id;
+      o.textContent = `${v.name} - ${v.note}`;
+      o.dataset.name = v.name;
+      sel.appendChild(o);
+    });
+  }
   if (![...sel.options].some(o => o.value === id)) {
-    sel.innerHTML = '';
     const o = document.createElement('option');
     o.value = id;
-    o.textContent = label;
+    o.textContent = CFG.elVoiceName ? `${CFG.elVoiceName} - custom` : `Custom - ${id}`;
+    o.dataset.name = CFG.elVoiceName || 'Custom';
     sel.appendChild(o);
   }
   sel.value = id;
-}
-function renderElevenVoices(voiceList) {
-  const sel = $('elVoiceSelect');
-  if (!sel) return;
-  const current = elevenVoiceId();
-  sel.innerHTML = '';
-  voiceList.forEach(v => {
-    const o = document.createElement('option');
-    o.value = v.voice_id;
-    const detail = [v.category, v.labels && (v.labels.accent || v.labels.gender || v.labels.age)].filter(Boolean).join(' - ');
-    o.textContent = `${v.name || 'Voice'}${detail ? ' - ' + detail : ''}`;
-    o.dataset.name = v.name || '';
-    sel.appendChild(o);
-  });
-  if (voiceList.some(v => v.voice_id === current)) sel.value = current;
-  else if (voiceList[0]) sel.value = voiceList[0].voice_id;
-  selectElevenVoice();
-}
-async function loadElevenVoices() {
-  const key = secret('elKey');
-  if (!key) {
-    status.textContent = 'Paste your ElevenLabs API key first.';
-    return;
-  }
-  status.textContent = 'Loading ElevenLabs voices...';
-  try {
-    const r = await fetch((CFG.ttsUrl || 'http://localhost:8766') + '/eleven/voices', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-ElevenLabs-Key': key },
-      body: JSON.stringify({})
-    });
-    if (!r.ok) {
-      let msg = 'ElevenLabs voices ' + r.status;
-      try { const j = await r.json(); if (j.error) msg += ': ' + j.error; } catch (e) {}
-      throw new Error(msg);
-    }
-    const j = await r.json();
-    const list = (j.voices || []).filter(v => v.voice_id);
-    if (!list.length) throw new Error('No ElevenLabs voices returned.');
-    renderElevenVoices(list);
-    status.textContent = `Loaded ${list.length} ElevenLabs voices.`;
-  } catch (e) {
-    status.textContent = e.message || 'Could not load ElevenLabs voices.';
-  }
 }
 function selectElevenVoice() {
   const sel = $('elVoiceSelect');
@@ -609,8 +586,9 @@ function selectElevenVoice() {
   CFG.elVoiceName = sel.selectedOptions[0] ? (sel.selectedOptions[0].dataset.name || sel.selectedOptions[0].textContent) : '';
   localStorage.setItem('carrieCfg', JSON.stringify(CFG));
   pingTts();
+  status.textContent = `ElevenLabs voice: ${CFG.elVoiceName || 'custom'}`;
 }
-if ($('loadElevenVoices')) $('loadElevenVoices').onclick = () => { saveCfg(); loadElevenVoices(); };
+if ($('useElevenVoice')) $('useElevenVoice').onclick = () => { selectElevenVoice(); saveCfg(); };
 if ($('elVoiceSelect')) $('elVoiceSelect').onchange = () => { selectElevenVoice(); saveCfg(); };
 if ($('elVoice')) $('elVoice').onchange = () => { CFG.elVoiceName = ''; syncElevenVoiceSelect(); saveCfg(); };
 
