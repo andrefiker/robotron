@@ -189,9 +189,48 @@
     .panelTitle { align-items: flex-start; flex-direction: column; }
     .avatarConsole { padding: 14px; }
   }
+
+  /* ---------- CRT atmosphere over the avatar console ---------- */
+  .avatarConsole::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 3px),
+      radial-gradient(circle at 50% 42%, transparent 56%, rgba(0,0,0,.46) 100%);
+    mix-blend-mode: multiply; opacity: .55;
+    animation: scan 7s linear infinite;
+  }
+  @keyframes scan { 0% { background-position: 0 0, 0 0; } 100% { background-position: 0 6px, 0 0; } }
+
+  /* ---------- live audio visualizer ---------- */
+  .viz { width: min(720px, 100%); height: 40px; justify-self: center; position: relative; z-index: 1; margin-top: 4px;
+         opacity: .9; }
+  .viz canvas { width: 100%; height: 100%; display: block; }
+
+  /* ---------- boot sequence ---------- */
+  .boot { position: fixed; inset: 0; z-index: 50; background: var(--bg1);
+          display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px;
+          font-family: "JetBrains Mono", ui-monospace, monospace; color: var(--accent);
+          transition: opacity .6s ease; }
+  .boot.gone { opacity: 0; pointer-events: none; }
+  .boot .brand { font-size: 30px; font-weight: 800; letter-spacing: .42em; text-transform: uppercase;
+                 text-shadow: 0 0 18px rgba(55,220,255,.6); }
+  .boot .lines { font-size: 12px; color: #6f7e9a; min-height: 80px; white-space: pre; line-height: 1.7; text-align: left; }
+  .boot .bar { width: 240px; height: 3px; background: rgba(122,162,247,.18); border-radius: 2px; overflow: hidden; }
+  .boot .bar i { display: block; height: 100%; width: 0; background: var(--accent); box-shadow: 0 0 10px var(--accent);
+                 animation: bootbar 1.5s ease forwards; }
+  @keyframes bootbar { to { width: 100%; } }
+
+  kbd { font-family: ui-monospace, monospace; font-size: 11px; background: rgba(122,162,247,.16);
+        border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; color: var(--accent2); }
+  .text.interim { color: #8aa0c8; font-style: italic; }
 </style>
 </head>
 <body>
+<div class="boot" id="boot">
+  <div class="brand">ROBOTRON</div>
+  <div class="bar"><i></i></div>
+  <div class="lines" id="bootLines"></div>
+</div>
 <main class="deck">
   <section class="avatarConsole">
   <div class="stage">
@@ -301,6 +340,7 @@
     <div class="who" id="who">Robotron</div>
     <div class="text" id="speech">Online. Against my better judgment. Type, or hit the mic.</div>
   </div>
+  <div class="viz" id="viz"><canvas id="vizCanvas"></canvas></div>
   <div class="status" id="status"></div>
   </section>
 
@@ -369,6 +409,14 @@
         <div style="margin-top:10px"><label>Local TTS proxy URL</label><input type="text" id="ttsUrl" class="field" value="http://localhost:8766" /></div>
         <div style="margin-top:10px"><label>Browser voice</label><select id="voiceSel" class="field"></select></div>
         <div class="grid2" style="margin-top:10px">
+          <div><label>Pitch <span id="pitchVal" class="tag">0.5</span></label>
+            <input type="range" id="pitch" min="0" max="1.6" step="0.05" value="0.5" class="field" style="padding:0" /></div>
+          <div><label>Rate <span id="rateVal" class="tag">0.95</span></label>
+            <input type="range" id="rate" min="0.5" max="1.4" step="0.05" value="0.95" class="field" style="padding:0" /></div>
+        </div>
+        <label class="checkLine" style="margin-top:10px"><input type="checkbox" id="roboFx" checked /> Robotic voice FX (metallic timbre)</label>
+        <label class="checkLine" style="margin-top:6px"><input type="checkbox" id="bargeIn" checked /> Barge-in: interrupt me when you start talking</label>
+        <div class="grid2" style="margin-top:10px">
           <button id="saveCfg">Save settings</button>
           <button class="secondary" id="testVoiceBtn">Test voice</button>
         </div>
@@ -400,7 +448,8 @@
       </div>
     </div>
 
-    <div class="hint">Keys stay session-only unless remembered. Search results appear as chips when Robotron looks something up.</div>
+    <div class="hint">Keys stay session-only unless remembered. Search results appear as chips when Robotron looks something up.<br>
+      Shortcuts: <kbd>Space</kbd> talk · <kbd>Esc</kbd> stop · <kbd>Enter</kbd> send · <kbd>/</kbd> focus input</div>
   </aside>
 
   <section class="inputDock">
@@ -426,8 +475,9 @@ const input = $('input'), micBtn = $('mic');
 /* ---------- Settings ---------- */
 const CFG = JSON.parse(localStorage.getItem('carrieCfg') || '{}');
 const SESSION_KEYS = JSON.parse(sessionStorage.getItem('robotronKeys') || '{}');
-const cfgFields = ['persona','backend','ollamaUrl','ollamaModel','openaiModel','elVoice','searchUrl','ttsUrl'];
+const cfgFields = ['persona','backend','ollamaUrl','ollamaModel','openaiModel','elVoice','searchUrl','ttsUrl','pitch','rate'];
 const keyFields = ['openaiKey','elKey'];
+const checkFields = ['roboFx','bargeIn'];
 let webOn = CFG.web === '1';
 let handsFree = CFG.hf === '1';
 let ttsReady = false;   // set true once a local Piper proxy answers
@@ -443,11 +493,15 @@ function setDot(name, mode, text) {
 function loadCfg() {
   cfgFields.forEach(k => { if (CFG[k] != null && $(k)) $(k).value = CFG[k]; });
   keyFields.forEach(k => { if ($(k)) $(k).value = SESSION_KEYS[k] || CFG[k] || ''; });
+  checkFields.forEach(k => { if ($(k) && CFG[k] != null) $(k).checked = CFG[k] === '1'; });
   if ($('rememberKeys')) $('rememberKeys').checked = CFG.rememberKeys === '1';
+  if ($('pitch')) $('pitchVal').textContent = $('pitch').value;
+  if ($('rate')) $('rateVal').textContent = $('rate').value;
   toggleBackendCfg();
 }
 function saveCfg() {
   cfgFields.forEach(k => { if ($(k)) CFG[k] = $(k).value; });
+  checkFields.forEach(k => { if ($(k)) CFG[k] = $(k).checked ? '1' : ''; });
   CFG.rememberKeys = $('rememberKeys').checked ? '1' : '';
   keyFields.forEach(k => {
     if (!$(k)) return;
@@ -470,6 +524,11 @@ $('backend').onchange = () => { toggleBackendCfg(); saveCfg(); };
 $('persona').onchange = saveCfg;
 $('ollamaModel').onchange = saveCfg;
 $('saveCfg').onclick = saveCfg;
+$('pitch').oninput = () => { $('pitchVal').textContent = $('pitch').value; };
+$('rate').oninput  = () => { $('rateVal').textContent = $('rate').value; };
+$('pitch').onchange = saveCfg; $('rate').onchange = saveCfg;
+$('roboFx').onchange = () => { rebuildFxRouting(); saveCfg(); };
+$('bargeIn').onchange = saveCfg;
 
 /* ---------- Expressions ---------- */
 const MOODS = ['happy','angry','thinking','surprised','sad'];
@@ -508,21 +567,53 @@ function startMouthRandom() {              // browser TTS: no waveform access, s
   talking = true;
   (function f(){
     if (!talking) { setTeeth(.85); return; }
-    setTeeth(.5 + Math.random()*.65);
+    const v = .5 + Math.random()*.65;
+    setTeeth(v); currentAmp = Math.min(1, (v - .5) * 1.5);
     talkTimer = setTimeout(f, 85 + Math.random()*60);
   })();
 }
-function stopMouth() { talking = false; clearTimeout(talkTimer); cancelAnimationFrame(rafId); setTeeth(.85); }
+function stopMouth() { talking = false; clearTimeout(talkTimer); cancelAnimationFrame(rafId); setTeeth(.85); currentAmp = 0; }
 
-/* ---------- Web Audio analyser: REAL amplitude lip-sync for audio-element TTS ---------- */
-let actx = null, analyser = null, dataArr = null;
+/* ---------- Web Audio: robotic FX chain + REAL amplitude lip-sync for audio-element TTS ---------- */
+let actx = null, analyser = null, dataArr = null, freqArr = null;
+let fxInput = null, dryGain = null, wetGain = null;
+let currentAmp = 0;                       // shared 0..1 amplitude for the visualizer
+function makeShaperCurve(drive) {          // gentle metallic distortion
+  const n = 1024, curve = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; curve[i] = Math.tanh(drive * x); }
+  return curve;
+}
 function ensureCtx() {
   if (!actx) {
     actx = new (window.AudioContext || window.webkitAudioContext)();
     analyser = actx.createAnalyser(); analyser.fftSize = 256;
     dataArr = new Uint8Array(analyser.frequencyBinCount);
+    freqArr = new Uint8Array(analyser.frequencyBinCount);
+
+    // input → (dry) → analyser  and  input → shaper → bandpass → comb-delay → (wet) → analyser
+    fxInput = actx.createGain();
+    dryGain = actx.createGain();
+    wetGain = actx.createGain();
+    const shaper = actx.createWaveShaper(); shaper.curve = makeShaperCurve(2.2); shaper.oversample = '2x';
+    const bp = actx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1650; bp.Q.value = 0.9;
+    const hp = actx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 180;
+    const delay = actx.createDelay(); delay.delayTime.value = 0.013;
+    const fb = actx.createGain(); fb.gain.value = 0.28;            // metallic comb resonance
+    delay.connect(fb); fb.connect(delay);
+
+    fxInput.connect(dryGain); dryGain.connect(analyser);
+    fxInput.connect(hp); hp.connect(shaper); shaper.connect(bp); bp.connect(delay);
+    delay.connect(wetGain); wetGain.connect(analyser);
+    analyser.connect(actx.destination);
+    rebuildFxRouting();
   }
   if (actx.state === 'suspended') actx.resume();
+}
+function rebuildFxRouting() {
+  if (!dryGain || !wetGain) return;
+  const on = !$('roboFx') || $('roboFx').checked;
+  dryGain.gain.value = on ? 0.6 : 1.0;
+  wetGain.gain.value = on ? 0.85 : 0.0;
 }
 
 /* ---------- Browser voices ---------- */
@@ -542,21 +633,43 @@ function loadVoices() {
   }
   voices = window.speechSynthesis.getVoices();
   voices.forEach((v,i) => { const o = document.createElement('option'); o.value=i; o.textContent=`${v.name} (${v.lang})`; sel.appendChild(o); });
-  let idx = voices.findIndex(v => /male|daniel|alex|fred|david|rishi|mark|guy|george|arthur/i.test(v.name) && !/female/i.test(v.name) && /en/i.test(v.lang));
-  if (idx < 0) idx = voices.findIndex(v => /en[-_]/i.test(v.lang));
-  sel.value = CFG.voiceIdx != null ? CFG.voiceIdx : (idx >= 0 ? idx : 0);
+  // score each voice: English + quality (natural/network) + male-leaning name
+  const score = v => {
+    let s = 0;
+    if (/^en[-_]/i.test(v.lang) || /en/i.test(v.lang)) s += 5;
+    if (/natural|neural|online|wavenet|enhanced|premium/i.test(v.name)) s += 4;
+    if (/google|microsoft/i.test(v.name)) s += 2;
+    if (v.localService === false) s += 2;
+    if (/male|daniel|alex|fred|david|rishi|mark|guy|george|arthur|brian|christopher/i.test(v.name) && !/female/i.test(v.name)) s += 3;
+    if (/female|zira|samantha|victoria|karen|tessa/i.test(v.name)) s -= 2;
+    return s;
+  };
+  let idx = 0, best = -1e9;
+  voices.forEach((v,i) => { const sc = score(v); if (sc > best) { best = sc; idx = i; } });
+  sel.value = CFG.voiceIdx != null ? CFG.voiceIdx : idx;
 }
 if (browserTts) window.speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
 
 /* ---------- Speak one chunk → resolves when finished ---------- */
 let currentAudio = null;
-function speakBrowser(text) {
+const MOOD_PROSODY = {              // delta applied on top of the base pitch/rate sliders
+  angry:     { p:  .15, r:  .12 },
+  thinking:  { p: -.05, r: -.18 },
+  surprised: { p:  .25, r:  .08 },
+  sad:       { p: -.12, r: -.15 },
+  happy:     { p:  .05, r:  .02 },
+};
+function speakBrowser(text, mood) {
   return new Promise(res => {
     if (!browserTts) return res();
     const u = new window.SpeechSynthesisUtterance(text);
     const v = voices[$('voiceSel').value]; if (v) u.voice = v;
-    u.pitch = 0.5; u.rate = 0.9;
+    const basePitch = parseFloat(($('pitch') && $('pitch').value)) || 0.5;
+    const baseRate  = parseFloat(($('rate')  && $('rate').value))  || 0.95;
+    const d = MOOD_PROSODY[mood] || { p: 0, r: 0 };
+    u.pitch = Math.max(0, Math.min(2, basePitch + d.p));
+    u.rate  = Math.max(.5, Math.min(1.6, baseRate + d.r));
     u.onstart = startMouthRandom;
     u.onend = () => { stopMouth(); res(); };
     u.onerror = () => { stopMouth(); res(); };
@@ -568,7 +681,7 @@ function speakAudioBlob(blob) {            // amplitude-driven mouth from the ac
     ensureCtx();
     const audio = new Audio(URL.createObjectURL(blob));
     currentAudio = audio;
-    try { const src = actx.createMediaElementSource(audio); src.connect(analyser); analyser.connect(actx.destination); }
+    try { const src = actx.createMediaElementSource(audio); src.connect(fxInput); }
     catch (e) {}
     audio.onplay = () => {
       talking = true;
@@ -577,6 +690,7 @@ function speakAudioBlob(blob) {            // amplitude-driven mouth from the ac
         analyser.getByteTimeDomainData(dataArr);
         let sum = 0; for (let i = 0; i < dataArr.length; i++) { const d = (dataArr[i]-128)/128; sum += d*d; }
         const rms = Math.sqrt(sum / dataArr.length);
+        currentAmp = Math.min(1, rms * 4.2);
         setTeeth(Math.max(.45, Math.min(1.18, .5 + rms*5)));
         rafId = requestAnimationFrame(loop);
       })();
@@ -605,12 +719,13 @@ async function speakOne(item) {
   setMood(item.mood || detectMood(item.text), 3600);
   if (secret('elKey') && CFG.elVoice) { try { return await speakAudioBlob(await elevenBlob(item.text)); } catch (e) {} }
   if (ttsReady)               { try { return await speakAudioBlob(await piperBlob(item.text)); } catch (e) {} }
-  return speakBrowser(item.text);
+  return speakBrowser(item.text, item.mood || detectMood(item.text));
 }
 
 /* ---------- Speech queue (streamed sentences play in order, no overlap) ---------- */
 const speakQueue = [];
 let speaking = false;
+let thinking = false;
 let currentAbort = null;
 function enqueueSpeech(text, mood) {
   if (!text || !text.trim()) return;
@@ -758,6 +873,7 @@ async function webSearch(text) {
 async function respond(text) {
   ensureCtx();
   stopAll();                                  // interrupt anything still talking/streaming
+  thinking = true;                            // owns "don't relisten yet" until a reply lands
   lastSources = []; renderSources([]);
   who.textContent = 'You'; speech.textContent = text; logAppend('You', text);
   setMood('thinking', 8000);
@@ -778,7 +894,7 @@ async function respond(text) {
     if (e.name === 'AbortError') return;
     status.textContent = '⚠ ' + e.message;
     sayLine("Something's wrong with the connection. Check the settings and try me again.", 'angry');
-  }
+  } finally { thinking = false; }
 }
 
 /* ---------- Transcript ---------- */
@@ -845,12 +961,34 @@ $('stopBtn').onclick = stopAll;
 
 /* ---------- Voice in + hands-free ---------- */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let rec = null, listening = false;
+let rec = null, listening = false, manualStop = false;
+function responsePending() { return speaking || thinking || speakQueue.length > 0 || !!currentAbort; }
 if (SR) {
-  rec = new SR(); rec.lang = 'en-US'; rec.interimResults = false;
-  rec.onresult = e => respond(e.results[0][0].transcript);
-  rec.onend = () => { listening = false; micBtn.classList.remove('on'); face.classList.remove('listening'); };
-  rec.onerror = () => { listening = false; micBtn.classList.remove('on'); face.classList.remove('listening'); };
+  rec = new SR(); rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = false;
+  rec.onresult = e => {
+    let interim = '', finalTxt = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const r = e.results[i];
+      if (r.isFinal) finalTxt += r[0].transcript; else interim += r[0].transcript;
+    }
+    if ((interim || finalTxt) && $('bargeIn') && $('bargeIn').checked && speaking) stopAll();
+    if (interim && !finalTxt) { who.textContent = 'You'; speech.textContent = interim + '…'; speech.classList.add('interim'); }
+    if (finalTxt.trim()) { speech.classList.remove('interim'); respond(finalTxt.trim()); }
+  };
+  rec.onend = () => {
+    listening = false; micBtn.classList.remove('on'); face.classList.remove('listening'); speech.classList.remove('interim');
+    // keep hands-free alive after silence/timeout; mid-turn relisten is owned by pump()
+    if (handsFree && !manualStop && !responsePending())
+      setTimeout(() => { if (handsFree && !responsePending() && !listening) startListening(); }, 400);
+    manualStop = false;
+  };
+  rec.onerror = ev => {
+    listening = false; micBtn.classList.remove('on'); face.classList.remove('listening'); speech.classList.remove('interim');
+    if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
+      status.textContent = '⚠ Mic blocked — allow microphone for this site (or it needs http://localhost).';
+      handsFree = false; reflectHands();
+    }
+  };
 } else { micBtn.disabled = true; micBtn.title = 'Speech recognition not supported here'; }
 function startListening() {
   if (!rec || listening) return;
@@ -858,7 +996,16 @@ function startListening() {
   try { listening = true; micBtn.classList.add('on'); face.classList.add('listening'); rec.start(); }
   catch (e) { listening = false; }
 }
-micBtn.onclick = () => { if (!rec) return; if (listening) { rec.stop(); return; } stopAll(); startListening(); };
+micBtn.onclick = () => { if (!rec) return; if (listening) { manualStop = true; rec.stop(); return; } stopAll(); startListening(); };
+
+/* ---------- Keyboard shortcuts ---------- */
+document.addEventListener('keydown', e => {
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '');
+  if (e.key === 'Escape') { stopAll(); if (listening) { manualStop = true; try { rec.stop(); } catch (_) {} } return; }
+  if (typing) return;
+  if (e.key === '/') { e.preventDefault(); input.focus(); return; }
+  if (e.code === 'Space') { e.preventDefault(); if (!rec) return; if (listening) { manualStop = true; rec.stop(); } else { stopAll(); startListening(); } }
+});
 
 function reflectHands() { $('handsBtn').classList.toggle('on', handsFree); }
 $('handsBtn').onclick = () => {
@@ -868,6 +1015,48 @@ $('handsBtn').onclick = () => {
   setTimeout(() => { if (status.textContent.includes('Hands-free')) status.textContent = ''; }, 1800);
   if (handsFree && !speaking && !listening) startListening();
 };
+
+/* ---------- Live visualizer (drives canvas bars + head-glow from amplitude) ---------- */
+const vizCanvas = $('vizCanvas'), vctx = vizCanvas.getContext('2d');
+const VIZ_BARS = 56;
+function sizeViz() {
+  const r = vizCanvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  vizCanvas.width = Math.max(1, r.width * dpr); vizCanvas.height = Math.max(1, r.height * dpr);
+  vctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', sizeViz);
+function drawViz() {
+  requestAnimationFrame(drawViz);
+  const dpr = window.devicePixelRatio || 1;
+  const w = vizCanvas.width / dpr, h = vizCanvas.height / dpr;
+  if (!w) return;
+  vctx.clearRect(0, 0, w, h);
+  let spectrum = null;
+  if (analyser && talking && currentAudio) { analyser.getByteFrequencyData(freqArr); spectrum = freqArr; }
+  const bw = w / VIZ_BARS, t = performance.now() / 600;
+  const colorPair = listening ? '247,118,142' : (talking ? '55,220,255' : '122,162,247');
+  for (let i = 0; i < VIZ_BARS; i++) {
+    let v;
+    if (spectrum) { v = spectrum[Math.floor(i / VIZ_BARS * spectrum.length * 0.55)] / 255; }
+    else if (talking) { v = currentAmp * (0.55 + 0.45 * Math.abs(Math.sin(t * 3 + i))); }
+    else { v = (listening ? 0.16 : 0.05) * (0.55 + 0.45 * Math.sin(t + i * 0.5)); }
+    v = Math.max(0.035, Math.min(1, v));
+    const bh = v * h, x = i * bw + bw * 0.2;
+    vctx.fillStyle = `rgba(${colorPair},${0.22 + v * 0.7})`;
+    vctx.fillRect(x, (h - bh) / 2, bw * 0.6, bh);
+  }
+  const hg = $('headGlow');
+  if (hg) hg.style.opacity = String(Math.min(1, (face.classList.contains('listening') ? 0.45 : 0) + currentAmp * 0.9));
+}
+sizeViz(); drawViz();
+
+/* ---------- Boot sequence ---------- */
+(function runBoot() {
+  const lines = ['> waking robotron core ...', '> mounting cynicism module ...', '> calibrating contempt levels ...', '> probing brain link :11434', '> systems nominal. ready.'];
+  const el = $('bootLines'); let i = 0;
+  (function step() { if (i < lines.length) { el.textContent += (i ? '\n' : '') + lines[i++]; setTimeout(step, 220); } })();
+  setTimeout(() => { const b = $('boot'); if (b) { b.classList.add('gone'); setTimeout(() => b.remove(), 700); } }, 1750);
+})();
 
 /* ---------- Boot ---------- */
 async function pingBrain() {
