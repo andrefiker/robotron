@@ -726,8 +726,12 @@ function speakAudioBlob(blob) {            // amplitude-driven mouth from the ac
       })();
     };
     audio.onended = () => { stopMouth(); currentAudio = null; res(); };
-    audio.onerror = () => { stopMouth(); currentAudio = null; res(); };
-    audio.play().catch(() => { stopMouth(); res(); });
+    audio.onerror = () => { stopMouth(); currentAudio = null; status.textContent = 'Audio output failed. Check system sound output.'; res(); };
+    audio.play().catch(e => {
+      stopMouth();
+      status.textContent = 'Audio playback blocked or unavailable: ' + (e.message || e.name || 'unknown error');
+      res();
+    });
   });
 }
 function secret(k) { return ($(k) && $(k).value) || SESSION_KEYS[k] || CFG[k] || ''; }
@@ -1026,6 +1030,12 @@ if (SR) {
     if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
       status.textContent = '⚠ Mic blocked — allow microphone for this site (or it needs http://localhost).';
       handsFree = false; reflectHands();
+    } else if (ev.error === 'audio-capture') {
+      status.textContent = '⚠ No microphone input detected by the browser.';
+    } else if (ev.error === 'network') {
+      status.textContent = '⚠ Browser speech recognition network service failed.';
+    } else if (ev.error) {
+      status.textContent = '⚠ Mic error: ' + ev.error;
     }
   };
 } else { micBtn.disabled = true; micBtn.title = 'Speech recognition not supported here'; }
@@ -1033,7 +1043,7 @@ function startListening() {
   if (!rec || listening) return;
   ensureCtx();
   try { listening = true; micBtn.classList.add('on'); face.classList.add('listening'); rec.start(); }
-  catch (e) { listening = false; }
+  catch (e) { listening = false; status.textContent = 'Mic start failed: ' + (e.message || e.name || 'unknown error'); }
 }
 micBtn.onclick = () => { if (!rec) return; if (listening) { manualStop = true; rec.stop(); return; } stopAll(); startListening(); };
 

@@ -10,6 +10,8 @@ BROWSER_PROFILE="${ROBOTRON_BROWSER_PROFILE:-$HOME/.config/edge-robotron}"
 
 export DISPLAY="${DISPLAY:-:0}"
 export XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export PULSE_RUNTIME_PATH="${PULSE_RUNTIME_PATH:-$XDG_RUNTIME_DIR/pulse}"
 export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"
 
 start_detached() {
@@ -62,7 +64,6 @@ if command -v microsoft-edge >/dev/null 2>&1; then
     --user-data-dir="$BROWSER_PROFILE" \
     --no-first-run \
     --autoplay-policy=no-user-gesture-required \
-    --use-fake-ui-for-media-stream \
     --enable-speech-dispatcher \
     --enable-features=WebSpeechRecognition \
     --new-window \
@@ -73,7 +74,6 @@ elif command -v microsoft-edge-stable >/dev/null 2>&1; then
     --user-data-dir="$BROWSER_PROFILE" \
     --no-first-run \
     --autoplay-policy=no-user-gesture-required \
-    --use-fake-ui-for-media-stream \
     --enable-speech-dispatcher \
     --enable-features=WebSpeechRecognition \
     --new-window \
@@ -84,7 +84,6 @@ elif command -v google-chrome >/dev/null 2>&1; then
     --user-data-dir="$BROWSER_PROFILE" \
     --no-first-run \
     --autoplay-policy=no-user-gesture-required \
-    --use-fake-ui-for-media-stream \
     --enable-speech-dispatcher \
     --enable-features=WebSpeechRecognition \
     --new-window \
@@ -95,7 +94,6 @@ elif command -v chromium >/dev/null 2>&1; then
     --user-data-dir="$BROWSER_PROFILE" \
     --no-first-run \
     --autoplay-policy=no-user-gesture-required \
-    --use-fake-ui-for-media-stream \
     --enable-speech-dispatcher \
     --enable-features=WebSpeechRecognition \
     --new-window \
