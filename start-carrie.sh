@@ -50,4 +50,10 @@ fi
 
 # 4) Open in browser
 echo "Robotron is up -> $URL"
-( xdg-open "$URL" >/dev/null 2>&1 || google-chrome "$URL" >/dev/null 2>&1 ) &
+if command -v google-chrome >/dev/null 2>&1; then
+  start_detached /tmp/robotron-chrome.log google-chrome --new-window "$URL"
+elif command -v chromium >/dev/null 2>&1; then
+  start_detached /tmp/robotron-chrome.log chromium --new-window "$URL"
+else
+  start_detached /tmp/robotron-open.log xdg-open "$URL"
+fi
