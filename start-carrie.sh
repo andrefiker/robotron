@@ -58,39 +58,16 @@ fi
 # 4) Open in browser
 echo "Robotron is up -> $URL"
 OPEN_URL="${URL}?v=$(date +%s)"
+EDGE_BIN=""
 if command -v microsoft-edge >/dev/null 2>&1; then
-  mkdir -p "$BROWSER_PROFILE"
-  start_detached /tmp/robotron-browser.log microsoft-edge \
-    --user-data-dir="$BROWSER_PROFILE" \
-    --no-first-run \
-    --autoplay-policy=no-user-gesture-required \
-    --enable-speech-dispatcher \
-    --enable-features=WebSpeechRecognition \
-    --new-window \
-    "$OPEN_URL"
+  EDGE_BIN="$(command -v microsoft-edge)"
 elif command -v microsoft-edge-stable >/dev/null 2>&1; then
+  EDGE_BIN="$(command -v microsoft-edge-stable)"
+fi
+
+if [ -n "$EDGE_BIN" ]; then
   mkdir -p "$BROWSER_PROFILE"
-  start_detached /tmp/robotron-browser.log microsoft-edge-stable \
-    --user-data-dir="$BROWSER_PROFILE" \
-    --no-first-run \
-    --autoplay-policy=no-user-gesture-required \
-    --enable-speech-dispatcher \
-    --enable-features=WebSpeechRecognition \
-    --new-window \
-    "$OPEN_URL"
-elif command -v google-chrome >/dev/null 2>&1; then
-  mkdir -p "$BROWSER_PROFILE"
-  start_detached /tmp/robotron-browser.log google-chrome \
-    --user-data-dir="$BROWSER_PROFILE" \
-    --no-first-run \
-    --autoplay-policy=no-user-gesture-required \
-    --enable-speech-dispatcher \
-    --enable-features=WebSpeechRecognition \
-    --new-window \
-    "$OPEN_URL"
-elif command -v chromium >/dev/null 2>&1; then
-  mkdir -p "$BROWSER_PROFILE"
-  start_detached /tmp/robotron-browser.log chromium \
+  start_detached /tmp/robotron-browser.log "$EDGE_BIN" \
     --user-data-dir="$BROWSER_PROFILE" \
     --no-first-run \
     --autoplay-policy=no-user-gesture-required \
@@ -99,5 +76,7 @@ elif command -v chromium >/dev/null 2>&1; then
     --new-window \
     "$OPEN_URL"
 else
-  start_detached /tmp/robotron-open.log xdg-open "$OPEN_URL"
+  echo "Microsoft Edge is required for Robotron speech mode, but it was not found." >&2
+  echo "Open manually after installing Edge: $OPEN_URL" >&2
+  exit 1
 fi
