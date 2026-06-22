@@ -83,6 +83,13 @@
   @keyframes bob { 0%,100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-8px) rotate(-.6deg); } }
   svg { width: 100%; height: 100%; overflow: visible; }
   .stage > svg { transform: translateY(-7%); }
+  .noirRain { opacity: .5; }
+  .noirRain line { stroke: rgba(138,180,255,.42); stroke-width: 1.2; stroke-linecap: round; }
+  .hatBand { fill: #151923; stroke: #3a4250; stroke-width: 2; }
+  .hatFelt { fill: url(#hatGrad); stroke: #2b3342; stroke-width: 2; }
+  .coat { fill: url(#coatGrad); stroke: #2b3342; stroke-width: 2; }
+  .lapel { fill: #10141d; stroke: rgba(138,180,255,.22); stroke-width: 1.5; }
+  .tie { fill: #6a1018; stroke: #24070b; stroke-width: 1; }
 
   /* mood drives one CSS variable that colors every glowing element */
   #face { --eye: #ff2d2d; }
@@ -243,17 +250,38 @@
         <linearGradient id="chrome2" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stop-color="#dfe6ee"/><stop offset="1" stop-color="#7e8a9a"/>
         </linearGradient>
+        <linearGradient id="hatGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#2b3444"/><stop offset=".55" stop-color="#111722"/><stop offset="1" stop-color="#06080d"/>
+        </linearGradient>
+        <linearGradient id="coatGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#232a35"/><stop offset=".58" stop-color="#0c1018"/><stop offset="1" stop-color="#05060a"/>
+        </linearGradient>
         <radialGradient id="recess"><stop offset="0" stop-color="#23272f"/><stop offset="1" stop-color="#05060a"/></radialGradient>
         <radialGradient id="glowGrad"><stop offset="0" stop-color="rgba(255,40,40,.55)"/><stop offset="1" stop-color="rgba(255,40,40,0)"/></radialGradient>
       </defs>
 
       <circle id="headGlow" cx="150" cy="172" r="140" fill="url(#glowGrad)"/>
+      <g class="noirRain">
+        <line x1="34" y1="22" x2="12" y2="86"/><line x1="72" y1="8" x2="45" y2="92"/>
+        <line x1="246" y1="14" x2="216" y2="96"/><line x1="284" y1="30" x2="260" y2="102"/>
+        <line x1="32" y1="190" x2="12" y2="248"/><line x1="266" y1="184" x2="244" y2="250"/>
+      </g>
+
+      <!-- noir fedora -->
+      <path class="hatFelt" d="M62 86 Q94 66 150 66 Q206 66 238 86 Q226 98 150 98 Q74 98 62 86 Z"/>
+      <path class="hatFelt" d="M92 72 Q102 28 150 26 Q198 28 208 72 Q178 84 150 84 Q122 84 92 72 Z"/>
+      <path class="hatBand" d="M94 66 Q150 82 206 66 L210 78 Q150 92 90 78 Z"/>
 
       <!-- spine / neck pistons -->
       <rect class="metal" x="132" y="262" width="9" height="54" rx="3"/>
       <rect class="metal" x="148" y="262" width="9" height="54" rx="3"/>
       <rect class="metal" x="164" y="262" width="9" height="54" rx="3"/>
       <rect class="metal" x="116" y="300" width="68" height="16" rx="5"/>
+      <path class="coat" d="M52 318 Q72 276 116 270 L140 318 Z"/>
+      <path class="coat" d="M248 318 Q228 276 184 270 L160 318 Z"/>
+      <path class="lapel" d="M116 272 L142 318 L122 318 L104 282 Z"/>
+      <path class="lapel" d="M184 272 L158 318 L178 318 L196 282 Z"/>
+      <path class="tie" d="M146 282 L154 282 L160 318 L140 318 Z"/>
 
       <!-- cranium dome -->
       <path class="metal" d="M66 134 Q58 54 150 48 Q242 54 234 134 Q232 156 218 170 L82 170 Q68 156 66 134 Z"/>
@@ -592,8 +620,20 @@ function selectElevenVoice() {
   pingTts();
   status.textContent = `ElevenLabs voice: ${CFG.elVoiceName || 'custom'}`;
 }
-if ($('useElevenVoice')) $('useElevenVoice').onclick = () => { selectElevenVoice(); saveCfg(); };
-if ($('elVoiceSelect')) $('elVoiceSelect').onchange = () => { selectElevenVoice(); saveCfg(); };
+if ($('useElevenVoice')) $('useElevenVoice').onclick = () => {
+  selectElevenVoice();
+  saveCfg();
+  status.textContent = secret('elKey')
+    ? `ElevenLabs voice: ${CFG.elVoiceName || 'custom'}`
+    : `ElevenLabs voice saved: ${CFG.elVoiceName || 'custom'}. Paste API key to use it.`;
+};
+if ($('elVoiceSelect')) $('elVoiceSelect').onchange = () => {
+  selectElevenVoice();
+  saveCfg();
+  status.textContent = secret('elKey')
+    ? `ElevenLabs voice: ${CFG.elVoiceName || 'custom'}`
+    : `ElevenLabs voice saved: ${CFG.elVoiceName || 'custom'}. Paste API key to use it.`;
+};
 if ($('elVoice')) $('elVoice').onchange = () => { CFG.elVoiceName = ''; syncElevenVoiceSelect(); saveCfg(); };
 
 /* ---------- Expressions ---------- */
@@ -825,7 +865,17 @@ async function piperBlob(text) {
 }
 async function speakOne(item) {
   setMood(item.mood || detectMood(item.text), 3600);
-  if (secret('elKey')) { try { return await speakAudioBlob(await elevenBlob(item.text), true); } catch (e) { status.textContent = e.message; } }
+  if (secret('elKey')) {
+    try { return await speakAudioBlob(await elevenBlob(item.text), true); }
+    catch (e) {
+      status.textContent = e.message + '. Using browser voice, not robotic local TTS.';
+      return speakBrowser(item.text, item.mood || detectMood(item.text));
+    }
+  }
+  if (elevenVoiceId()) {
+    status.textContent = 'ElevenLabs key missing. Using browser voice, not robotic local TTS.';
+    return speakBrowser(item.text, item.mood || detectMood(item.text));
+  }
   if (ttsReady)               { try { return await speakAudioBlob(await piperBlob(item.text)); } catch (e) {} }
   return speakBrowser(item.text, item.mood || detectMood(item.text));
 }
@@ -1059,7 +1109,8 @@ $('resetBtn').onclick = () => {
 $('testVoiceBtn').onclick = () => {
   saveCfg();
   if (actx && actx.state === 'suspended') actx.resume();
-  enqueueSpeech("Voice channel online. Humanity remains the unstable dependency.", 'happy');
+  const name = CFG.elVoiceName || 'selected voice';
+  enqueueSpeech(`${name} voice channel online. Humanity remains the unstable dependency.`, 'happy');
 };
 
 /* ---------- Input ---------- */
@@ -1201,11 +1252,11 @@ async function pingTts() {
     const engine = await r.text();
     ttsReady = r.ok;
     const elevenReady = engine.includes('elevenlabs') || (secret('elKey') && elevenVoiceId());
-    setDot('voice', elevenReady ? 'ok' : ttsReady ? 'ok' : 'warn', elevenReady ? 'ElevenLabs ready' : ttsReady ? engine.replace('ok:', '') + ' ready' : 'browser');
+    setDot('voice', elevenReady ? 'ok' : 'warn', elevenReady ? `ElevenLabs: ${CFG.elVoiceName || 'voice'}` : secret('elKey') ? 'ElevenLabs error' : 'ElevenLabs key needed');
   }
   catch (e) {
     ttsReady = false;
-    setDot('voice', (secret('elKey') && elevenVoiceId()) ? 'ok' : 'warn', (secret('elKey') && elevenVoiceId()) ? 'ElevenLabs configured' : 'browser');
+    setDot('voice', (secret('elKey') && elevenVoiceId()) ? 'ok' : 'warn', (secret('elKey') && elevenVoiceId()) ? `ElevenLabs: ${CFG.elVoiceName || 'voice'}` : 'ElevenLabs key needed');
   }
 }
 loadCfg(); reflectWeb(); reflectHands(); setDot('search', webOn ? 'ok' : '', webOn ? 'forced on' : 'auto'); pingBrain(); pingTts();
