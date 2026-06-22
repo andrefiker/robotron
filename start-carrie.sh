@@ -7,6 +7,10 @@ HOST="127.0.0.1"
 PORT="${ROBOTRON_PORT:-8000}"
 URL="http://localhost:${PORT}/avatar.html"
 
+export DISPLAY="${DISPLAY:-:0}"
+export XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
+export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"
+
 start_detached() {
   local log_file="$1"
   shift
