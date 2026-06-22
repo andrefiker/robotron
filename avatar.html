@@ -404,7 +404,7 @@
         <div><label>Web-search proxy URL</label><input type="text" id="searchUrl" class="field" value="http://localhost:8765" /></div>
         <div class="grid2" style="margin-top:10px">
           <div><label>ElevenLabs API key</label><input type="password" id="elKey" class="field" placeholder="optional" /></div>
-          <div><label>ElevenLabs Voice ID</label><input type="text" id="elVoice" class="field" placeholder="optional" /></div>
+          <div><label>ElevenLabs Voice ID</label><input type="text" id="elVoice" class="field" value="JBFqnCBsd6RMkjVDRZzb" /></div>
         </div>
         <div style="margin-top:10px"><label>Local TTS proxy URL</label><input type="text" id="ttsUrl" class="field" value="http://localhost:8766" /></div>
         <div style="margin-top:10px"><label>Browser voice</label><select id="voiceSel" class="field"></select></div>
@@ -492,6 +492,7 @@ function setDot(name, mode, text) {
 }
 function loadCfg() {
   cfgFields.forEach(k => { if (CFG[k] != null && $(k)) $(k).value = CFG[k]; });
+  if ($('elVoice') && !$('elVoice').value.trim()) $('elVoice').value = 'JBFqnCBsd6RMkjVDRZzb';
   keyFields.forEach(k => { if ($(k)) $(k).value = SESSION_KEYS[k] || CFG[k] || ''; });
   checkFields.forEach(k => { if ($(k) && CFG[k] != null) $(k).checked = CFG[k] === '1'; });
   if ($('rememberKeys')) $('rememberKeys').checked = CFG.rememberKeys === '1';
@@ -706,12 +707,16 @@ function speakBrowser(text, mood) {
     window.speechSynthesis.speak(u);
   });
 }
-function speakAudioBlob(blob) {            // amplitude-driven mouth from the actual audio
+function speakAudioBlob(blob, clean = false) {            // amplitude-driven mouth from the actual audio
   return new Promise(res => {
     ensureCtx();
     const audio = new Audio(URL.createObjectURL(blob));
     currentAudio = audio;
-    try { const src = actx.createMediaElementSource(audio); src.connect(fxInput); }
+    try {
+      const src = actx.createMediaElementSource(audio);
+      if (clean) src.connect(analyser);
+      else src.connect(fxInput);
+    }
     catch (e) {}
     audio.onplay = () => {
       talking = true;
@@ -735,6 +740,7 @@ function speakAudioBlob(blob) {            // amplitude-driven mouth from the ac
   });
 }
 function secret(k) { return ($(k) && $(k).value) || SESSION_KEYS[k] || CFG[k] || ''; }
+function elevenVoiceId() { return ($('elVoice') && $('elVoice').value.trim()) || CFG.elVoice || 'JBFqnCBsd6RMkjVDRZzb'; }
 
 async function elevenBlob(text) {
   const r = await fetch((CFG.ttsUrl || 'http://localhost:8766') + '/eleven/tts', {
@@ -743,7 +749,7 @@ async function elevenBlob(text) {
       'Content-Type': 'application/json',
       'X-ElevenLabs-Key': secret('elKey')
     },
-    body: JSON.stringify({ text, voice_id: CFG.elVoice || '', model_id: 'eleven_flash_v2_5' })
+    body: JSON.stringify({ text, voice_id: elevenVoiceId(), model_id: 'eleven_flash_v2_5' })
   });
   if (!r.ok) {
     let msg = 'ElevenLabs ' + r.status;
@@ -759,7 +765,7 @@ async function piperBlob(text) {
 }
 async function speakOne(item) {
   setMood(item.mood || detectMood(item.text), 3600);
-  if (secret('elKey') || CFG.elVoice) { try { return await speakAudioBlob(await elevenBlob(item.text)); } catch (e) { status.textContent = e.message; } }
+  if (secret('elKey')) { try { return await speakAudioBlob(await elevenBlob(item.text), true); } catch (e) { status.textContent = e.message; } }
   if (ttsReady)               { try { return await speakAudioBlob(await piperBlob(item.text)); } catch (e) {} }
   return speakBrowser(item.text, item.mood || detectMood(item.text));
 }
@@ -1134,12 +1140,12 @@ async function pingTts() {
     const r = await fetch((CFG.ttsUrl || 'http://localhost:8766') + '/health');
     const engine = await r.text();
     ttsReady = r.ok;
-    const elevenReady = engine.includes('elevenlabs') || (secret('elKey') && CFG.elVoice);
+    const elevenReady = engine.includes('elevenlabs') || (secret('elKey') && elevenVoiceId());
     setDot('voice', elevenReady ? 'ok' : ttsReady ? 'ok' : 'warn', elevenReady ? 'ElevenLabs ready' : ttsReady ? engine.replace('ok:', '') + ' ready' : 'browser');
   }
   catch (e) {
     ttsReady = false;
-    setDot('voice', (secret('elKey') && CFG.elVoice) ? 'ok' : 'warn', (secret('elKey') && CFG.elVoice) ? 'ElevenLabs configured' : 'browser');
+    setDot('voice', (secret('elKey') && elevenVoiceId()) ? 'ok' : 'warn', (secret('elKey') && elevenVoiceId()) ? 'ElevenLabs configured' : 'browser');
   }
 }
 loadCfg(); reflectWeb(); reflectHands(); setDot('search', webOn ? 'ok' : '', webOn ? 'forced on' : 'auto'); pingBrain(); pingTts();

@@ -19,8 +19,9 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 PORT = 8766
 VOICE = None
 ESPEAK = shutil.which("espeak-ng") or shutil.which("espeak")
+DEFAULT_ELEVEN_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"
 ELEVEN_KEY = os.environ.get("ELEVENLABS_API_KEY") or os.environ.get("ELEVEN_API_KEY")
-ELEVEN_VOICE_ID = os.environ.get("ELEVENLABS_VOICE_ID", "")
+ELEVEN_VOICE_ID = os.environ.get("ELEVENLABS_VOICE_ID", DEFAULT_ELEVEN_VOICE_ID)
 ELEVEN_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_flash_v2_5")
 try:
     from piper import PiperVoice
