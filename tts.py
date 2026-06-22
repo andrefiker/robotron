@@ -9,9 +9,10 @@ Setup:  pip install piper-tts
 Voice:  set ROBO_PIPER_VOICE to a .onnx path, else it auto-downloads en_US-ryan-high.
 Eleven: set ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID, or pass them from the UI.
 Run:    python3 tts.py            # serves on http://localhost:8766
-Endpoints:  GET  /health       ->  200 if any voice engine is available
-            GET  /tts?text=... ->  audio/wav or audio/mpeg
-            POST /eleven/tts   ->  audio/mpeg
+Endpoints:  GET  /health        ->  200 if any voice engine is available
+            GET  /tts?text=...  ->  audio/wav or audio/mpeg
+            POST /eleven/tts    ->  audio/mpeg
+            POST /eleven/voices ->  application/json
 """
 import os, sys, io, wave, json, shutil, subprocess, tempfile, urllib.parse, urllib.request
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -69,6 +70,20 @@ def eleven_synth(text, api_key=None, voice_id=None, model_id=None):
     )
     return urllib.request.urlopen(req, timeout=45).read()
 
+def eleven_voices(api_key=None):
+    key = api_key or ELEVEN_KEY
+    if not key:
+        raise RuntimeError("missing ElevenLabs API key")
+    req = urllib.request.Request(
+        "https://api.elevenlabs.io/v2/voices?page_size=100",
+        method="GET",
+        headers={
+            "xi-api-key": key,
+            "Accept": "application/json",
+        },
+    )
+    return urllib.request.urlopen(req, timeout=30).read()
+
 def synth(text):
     if ELEVEN_KEY and ELEVEN_VOICE_ID:
         return eleven_synth(text)
@@ -118,6 +133,18 @@ class H(BaseHTTPRequestHandler):
         self.send_response(404); self._cors(); self.end_headers()
     def do_POST(self):
         u = urllib.parse.urlparse(self.path)
+        if u.path == "/eleven/voices":
+            try:
+                n = int(self.headers.get("Content-Length", "0"))
+                payload = json.loads(self.rfile.read(n).decode() or "{}")
+                data = eleven_voices(
+                    api_key=self.headers.get("X-ElevenLabs-Key") or payload.get("api_key")
+                )
+                self.send_response(200); self.send_header("Content-Type", "application/json")
+                self._cors(); self.end_headers(); self.wfile.write(data)
+            except Exception as e:
+                self._json(500, {"error": str(e)})
+            return
         if u.path != "/eleven/tts":
             self.send_response(404); self._cors(); self.end_headers(); return
         try:
