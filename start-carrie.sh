@@ -6,7 +6,7 @@ APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOST="127.0.0.1"
 PORT="${ROBOTRON_PORT:-8000}"
 URL="http://localhost:${PORT}/avatar.html"
-CHROME_PROFILE="${ROBOTRON_CHROME_PROFILE:-$HOME/.config/google-chrome-robotron}"
+BROWSER_PROFILE="${ROBOTRON_BROWSER_PROFILE:-$HOME/.config/edge-robotron}"
 
 export DISPLAY="${DISPLAY:-:0}"
 export XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
@@ -56,17 +56,31 @@ fi
 # 4) Open in browser
 echo "Robotron is up -> $URL"
 OPEN_URL="${URL}?v=$(date +%s)"
-if command -v google-chrome >/dev/null 2>&1; then
-  mkdir -p "$CHROME_PROFILE"
-  start_detached /tmp/robotron-chrome.log google-chrome \
-    --user-data-dir="$CHROME_PROFILE" \
+if command -v microsoft-edge >/dev/null 2>&1; then
+  mkdir -p "$BROWSER_PROFILE"
+  start_detached /tmp/robotron-browser.log microsoft-edge \
+    --user-data-dir="$BROWSER_PROFILE" \
+    --no-first-run \
+    --new-window \
+    "$OPEN_URL"
+elif command -v microsoft-edge-stable >/dev/null 2>&1; then
+  mkdir -p "$BROWSER_PROFILE"
+  start_detached /tmp/robotron-browser.log microsoft-edge-stable \
+    --user-data-dir="$BROWSER_PROFILE" \
+    --no-first-run \
+    --new-window \
+    "$OPEN_URL"
+elif command -v google-chrome >/dev/null 2>&1; then
+  mkdir -p "$BROWSER_PROFILE"
+  start_detached /tmp/robotron-browser.log google-chrome \
+    --user-data-dir="$BROWSER_PROFILE" \
     --no-first-run \
     --new-window \
     "$OPEN_URL"
 elif command -v chromium >/dev/null 2>&1; then
-  mkdir -p "$CHROME_PROFILE"
-  start_detached /tmp/robotron-chrome.log chromium \
-    --user-data-dir="$CHROME_PROFILE" \
+  mkdir -p "$BROWSER_PROFILE"
+  start_detached /tmp/robotron-browser.log chromium \
+    --user-data-dir="$BROWSER_PROFILE" \
     --no-first-run \
     --new-window \
     "$OPEN_URL"

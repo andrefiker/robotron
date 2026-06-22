@@ -3,6 +3,6 @@ Type=Application
 Name=Robotron Command Deck
 Comment=Start Ollama + proxies and open the Robotron avatar
 Exec=/home/andre/Desktop/robotron/start-carrie.sh
-Icon=google-chrome
+Icon=microsoft-edge
 Terminal=false
 X-GNOME-Autostart-enabled=true
