@@ -55,20 +55,21 @@ fi
 
 # 4) Open in browser
 echo "Robotron is up -> $URL"
+OPEN_URL="${URL}?v=$(date +%s)"
 if command -v google-chrome >/dev/null 2>&1; then
   mkdir -p "$CHROME_PROFILE"
   start_detached /tmp/robotron-chrome.log google-chrome \
     --user-data-dir="$CHROME_PROFILE" \
     --no-first-run \
     --new-window \
-    "$URL"
+    "$OPEN_URL"
 elif command -v chromium >/dev/null 2>&1; then
   mkdir -p "$CHROME_PROFILE"
   start_detached /tmp/robotron-chrome.log chromium \
     --user-data-dir="$CHROME_PROFILE" \
     --no-first-run \
     --new-window \
-    "$URL"
+    "$OPEN_URL"
 else
-  start_detached /tmp/robotron-open.log xdg-open "$URL"
+  start_detached /tmp/robotron-open.log xdg-open "$OPEN_URL"
 fi
