@@ -611,6 +611,7 @@ async function speakOne(item) {
 /* ---------- Speech queue (streamed sentences play in order, no overlap) ---------- */
 const speakQueue = [];
 let speaking = false;
+let currentAbort = null;
 function enqueueSpeech(text, mood) {
   if (!text || !text.trim()) return;
   speakQueue.push({ text: text.trim(), mood }); pump();
