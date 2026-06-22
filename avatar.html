@@ -509,6 +509,11 @@ function saveCfg() {
     else { SESSION_KEYS[k] = $(k).value; delete CFG[k]; }
   });
   CFG.voiceIdx = $('voiceSel').value;
+  const chosenVoice = voices[$('voiceSel').value];
+  if (chosenVoice) {
+    CFG.voiceName = chosenVoice.name;
+    CFG.voiceLang = chosenVoice.lang;
+  }
   localStorage.setItem('carrieCfg', JSON.stringify(CFG));
   sessionStorage.setItem('robotronKeys', JSON.stringify(SESSION_KEYS));
   status.textContent = 'Settings saved.'; setTimeout(() => status.textContent = '', 1500);
@@ -633,10 +638,13 @@ function loadVoices() {
   }
   voices = window.speechSynthesis.getVoices();
   voices.forEach((v,i) => { const o = document.createElement('option'); o.value=i; o.textContent=`${v.name} (${v.lang})`; sel.appendChild(o); });
-  // score each voice: English + quality (natural/network) + male-leaning name
+  // Prefer a stable US English voice. Voice indexes drift between Chrome runs.
   const score = v => {
     let s = 0;
-    if (/^en[-_]/i.test(v.lang) || /en/i.test(v.lang)) s += 5;
+    if (/^en[-_]US$/i.test(v.lang)) s += 100;
+    else if (/^en[-_]/i.test(v.lang) || /en/i.test(v.lang)) s += 20;
+    else s -= 100;
+    if (/\bUS\b|United States|American/i.test(`${v.name} ${v.lang}`)) s += 20;
     if (/natural|neural|online|wavenet|enhanced|premium/i.test(v.name)) s += 4;
     if (/google|microsoft/i.test(v.name)) s += 2;
     if (v.localService === false) s += 2;
@@ -646,7 +654,19 @@ function loadVoices() {
   };
   let idx = 0, best = -1e9;
   voices.forEach((v,i) => { const sc = score(v); if (sc > best) { best = sc; idx = i; } });
-  sel.value = CFG.voiceIdx != null ? CFG.voiceIdx : idx;
+  const remembered = voices.findIndex(v => v.name === CFG.voiceName && v.lang === CFG.voiceLang);
+  const oldIndex = Number(CFG.voiceIdx);
+  const indexed = Number.isInteger(oldIndex) ? voices[oldIndex] : null;
+  const rememberedIsUs = remembered >= 0 && /^en[-_]US$/i.test(voices[remembered].lang);
+  const indexedIsUs = indexed && /^en[-_]US$/i.test(indexed.lang);
+  sel.value = rememberedIsUs ? remembered : (indexedIsUs ? oldIndex : idx);
+  const selected = voices[sel.value];
+  if (selected) {
+    CFG.voiceIdx = sel.value;
+    CFG.voiceName = selected.name;
+    CFG.voiceLang = selected.lang;
+    localStorage.setItem('carrieCfg', JSON.stringify(CFG));
+  }
 }
 if (browserTts) window.speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
@@ -663,8 +683,18 @@ const MOOD_PROSODY = {              // delta applied on top of the base pitch/ra
 function speakBrowser(text, mood) {
   return new Promise(res => {
     if (!browserTts) return res();
+    window.speechSynthesis.cancel();
     const u = new window.SpeechSynthesisUtterance(text);
-    const v = voices[$('voiceSel').value]; if (v) u.voice = v;
+    let v = voices[$('voiceSel').value];
+    if (!v || !/^en[-_]US$/i.test(v.lang)) {
+      const us = voices.find(x => /^en[-_]US$/i.test(x.lang)) || voices.find(x => /^en[-_]/i.test(x.lang));
+      if (us) {
+        v = us;
+        $('voiceSel').value = voices.indexOf(us);
+      }
+    }
+    if (v) { u.voice = v; u.lang = v.lang || 'en-US'; }
+    else u.lang = 'en-US';
     const basePitch = parseFloat(($('pitch') && $('pitch').value)) || 0.5;
     const baseRate  = parseFloat(($('rate')  && $('rate').value))  || 0.95;
     const d = MOOD_PROSODY[mood] || { p: 0, r: 0 };
@@ -703,11 +733,19 @@ function speakAudioBlob(blob) {            // amplitude-driven mouth from the ac
 function secret(k) { return ($(k) && $(k).value) || SESSION_KEYS[k] || CFG[k] || ''; }
 
 async function elevenBlob(text) {
-  const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${CFG.elVoice}`, {
-    method: 'POST', headers: { 'xi-api-key': secret('elKey'), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, model_id: 'eleven_multilingual_v2', voice_settings: { stability: 0.45, similarity_boost: 0.85 } })
+  const r = await fetch((CFG.ttsUrl || 'http://localhost:8766') + '/eleven/tts', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-ElevenLabs-Key': secret('elKey')
+    },
+    body: JSON.stringify({ text, voice_id: CFG.elVoice || '', model_id: 'eleven_flash_v2_5' })
   });
-  if (!r.ok) throw new Error('EL ' + r.status);
+  if (!r.ok) {
+    let msg = 'ElevenLabs ' + r.status;
+    try { const j = await r.json(); if (j.error) msg += ': ' + j.error; } catch (e) {}
+    throw new Error(msg);
+  }
   return new Blob([await r.arrayBuffer()], { type: 'audio/mpeg' });
 }
 async function piperBlob(text) {
@@ -717,7 +755,7 @@ async function piperBlob(text) {
 }
 async function speakOne(item) {
   setMood(item.mood || detectMood(item.text), 3600);
-  if (secret('elKey') && CFG.elVoice) { try { return await speakAudioBlob(await elevenBlob(item.text)); } catch (e) {} }
+  if (secret('elKey') || CFG.elVoice) { try { return await speakAudioBlob(await elevenBlob(item.text)); } catch (e) { status.textContent = e.message; } }
   if (ttsReady)               { try { return await speakAudioBlob(await piperBlob(item.text)); } catch (e) {} }
   return speakBrowser(item.text, item.mood || detectMood(item.text));
 }
@@ -950,6 +988,7 @@ $('resetBtn').onclick = () => {
 };
 $('testVoiceBtn').onclick = () => {
   saveCfg();
+  if (actx && actx.state === 'suspended') actx.resume();
   enqueueSpeech("Voice channel online. Humanity remains the unstable dependency.", 'happy');
 };
 
@@ -1082,10 +1121,16 @@ async function pingBrain() {
 }
 async function pingTts() {
   try {
-    const r = await fetch((CFG.ttsUrl || 'http://localhost:8766') + '/health'); ttsReady = r.ok;
-    setDot('voice', ttsReady ? 'ok' : 'warn', ttsReady ? 'Piper ready' : (secret('elKey') ? 'ElevenLabs' : 'browser'));
+    const r = await fetch((CFG.ttsUrl || 'http://localhost:8766') + '/health');
+    const engine = await r.text();
+    ttsReady = r.ok;
+    const elevenReady = engine.includes('elevenlabs') || (secret('elKey') && CFG.elVoice);
+    setDot('voice', elevenReady ? 'ok' : ttsReady ? 'ok' : 'warn', elevenReady ? 'ElevenLabs ready' : ttsReady ? engine.replace('ok:', '') + ' ready' : 'browser');
   }
-  catch (e) { ttsReady = false; setDot('voice', secret('elKey') ? 'ok' : 'warn', secret('elKey') ? 'ElevenLabs' : 'browser'); }
+  catch (e) {
+    ttsReady = false;
+    setDot('voice', (secret('elKey') && CFG.elVoice) ? 'ok' : 'warn', (secret('elKey') && CFG.elVoice) ? 'ElevenLabs configured' : 'browser');
+  }
 }
 loadCfg(); reflectWeb(); reflectHands(); setDot('search', webOn ? 'ok' : '', webOn ? 'forced on' : 'auto'); pingBrain(); pingTts();
 setInterval(() => { if (Math.random() > 0.7) { face.classList.add('tilt'); setTimeout(() => face.classList.remove('tilt'), 700); } }, 6000);
