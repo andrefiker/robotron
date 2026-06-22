@@ -2,7 +2,7 @@
 Type=Application
 Name=Robotron Avatar
 Comment=Start Ollama + proxies and open the Robotron avatar
-Exec=/home/andre/Desktop/start-carrie.sh
-Icon=face-monkey
+Exec=/home/andre/Desktop/robotron/start-carrie.sh
+Icon=computer
 Terminal=false
 X-GNOME-Autostart-enabled=true
