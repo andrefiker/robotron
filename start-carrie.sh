@@ -6,6 +6,7 @@ APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOST="127.0.0.1"
 PORT="${ROBOTRON_PORT:-8000}"
 URL="http://localhost:${PORT}/avatar.html"
+CHROME_PROFILE="${ROBOTRON_CHROME_PROFILE:-$HOME/.config/google-chrome-robotron}"
 
 export DISPLAY="${DISPLAY:-:0}"
 export XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
@@ -55,9 +56,19 @@ fi
 # 4) Open in browser
 echo "Robotron is up -> $URL"
 if command -v google-chrome >/dev/null 2>&1; then
-  start_detached /tmp/robotron-chrome.log google-chrome --new-window "$URL"
+  mkdir -p "$CHROME_PROFILE"
+  start_detached /tmp/robotron-chrome.log google-chrome \
+    --user-data-dir="$CHROME_PROFILE" \
+    --no-first-run \
+    --new-window \
+    "$URL"
 elif command -v chromium >/dev/null 2>&1; then
-  start_detached /tmp/robotron-chrome.log chromium --new-window "$URL"
+  mkdir -p "$CHROME_PROFILE"
+  start_detached /tmp/robotron-chrome.log chromium \
+    --user-data-dir="$CHROME_PROFILE" \
+    --no-first-run \
+    --new-window \
+    "$URL"
 else
   start_detached /tmp/robotron-open.log xdg-open "$URL"
 fi
