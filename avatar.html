@@ -133,9 +133,9 @@
   /* ---------- UI ---------- */
   .bubble { width: min(720px, 100%); min-height: 74px; background: var(--panel);
     border: 1px solid rgba(55,220,255,.25); border-radius: 8px; padding: 14px 18px; line-height: 1.5;
-    text-align: left; backdrop-filter: blur(6px); justify-self: center; position: relative; z-index: 1; }
+    text-align: left; backdrop-filter: blur(6px); justify-self: center; position: relative; z-index: 1; min-width: 0; }
   .who { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); opacity: .85; }
-  .text { margin-top: 5px; font-size: 17px; color: #eef2ff; min-height: 24px; }
+  .text { margin-top: 5px; font-size: 17px; color: #eef2ff; min-height: 24px; overflow-wrap: anywhere; }
 
   .row { display: flex; gap: 10px; width: 100%; }
   input[type=text], input[type=password], select {
@@ -187,6 +187,7 @@
     .row { flex-wrap: wrap; }
     .row input { flex-basis: 100%; }
     .panelTitle { align-items: flex-start; flex-direction: column; }
+    .avatarConsole { padding: 14px; }
   }
 </style>
 </head>

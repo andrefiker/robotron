@@ -52,6 +52,18 @@ chmod +x install-autostart.sh
 - `start-carrie.sh`: launches Ollama, proxies, local web server, and browser.
 - `robotron.desktop`: Linux desktop autostart entry template.
 
+## Enhanced Command Deck
+
+The enhanced branch keeps the original no-build architecture and adds a command-deck interface:
+
+- Low-latency `llama3.2` default when available.
+- Brain, voice, and search status lights.
+- Persona modes for Robotron, Carrie, less-savage Robotron, and technical analyst.
+- Source chips for live search results in the transcript.
+- Session-only API keys by default, with opt-in browser persistence.
+- Transcript export, clear, reset, and voice-test controls.
+- Detached launcher startup for Ollama, proxies, and the local web server.
+
 ## Notes
 
 - Ollama browser calls require `OLLAMA_ORIGINS=*`; the launcher starts Ollama that way when it is not already running.
