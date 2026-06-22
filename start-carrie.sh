@@ -61,6 +61,8 @@ if command -v microsoft-edge >/dev/null 2>&1; then
   start_detached /tmp/robotron-browser.log microsoft-edge \
     --user-data-dir="$BROWSER_PROFILE" \
     --no-first-run \
+    --autoplay-policy=no-user-gesture-required \
+    --use-fake-ui-for-media-stream \
     --new-window \
     "$OPEN_URL"
 elif command -v microsoft-edge-stable >/dev/null 2>&1; then
@@ -68,6 +70,8 @@ elif command -v microsoft-edge-stable >/dev/null 2>&1; then
   start_detached /tmp/robotron-browser.log microsoft-edge-stable \
     --user-data-dir="$BROWSER_PROFILE" \
     --no-first-run \
+    --autoplay-policy=no-user-gesture-required \
+    --use-fake-ui-for-media-stream \
     --new-window \
     "$OPEN_URL"
 elif command -v google-chrome >/dev/null 2>&1; then
@@ -75,6 +79,8 @@ elif command -v google-chrome >/dev/null 2>&1; then
   start_detached /tmp/robotron-browser.log google-chrome \
     --user-data-dir="$BROWSER_PROFILE" \
     --no-first-run \
+    --autoplay-policy=no-user-gesture-required \
+    --use-fake-ui-for-media-stream \
     --new-window \
     "$OPEN_URL"
 elif command -v chromium >/dev/null 2>&1; then
@@ -82,6 +88,8 @@ elif command -v chromium >/dev/null 2>&1; then
   start_detached /tmp/robotron-browser.log chromium \
     --user-data-dir="$BROWSER_PROFILE" \
     --no-first-run \
+    --autoplay-policy=no-user-gesture-required \
+    --use-fake-ui-for-media-stream \
     --new-window \
     "$OPEN_URL"
 else
