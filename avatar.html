@@ -4,11 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Robotron</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2307090d'/%3E%3Ccircle cx='11' cy='15' r='4' fill='%23ff2d2d'/%3E%3Ccircle cx='21' cy='15' r='4' fill='%23ff2d2d'/%3E%3Cpath d='M9 23h14' stroke='%2337dcff' stroke-width='3'/%3E%3C/svg%3E" />
 <style>
   :root {
     --bg1: #07090d; --bg2: #101621;
     --accent: #37dcff; --accent2: #8ab4ff; --danger: #ff3f4f; --warn: #ffc24a;
     --panel: rgba(16,20,30,.86); --panel2: rgba(9,12,18,.78); --line: rgba(125,178,255,.18);
+    --space: 12px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
@@ -30,10 +32,11 @@
     height: calc(100vh - 36px);
     margin: 0 auto;
     display: grid;
-    grid-template-columns: minmax(420px, 1fr) minmax(360px, 440px);
+    grid-template-columns: minmax(620px, 1fr) minmax(310px, 360px);
     grid-template-rows: minmax(0, 1fr) auto;
     gap: 16px;
   }
+  .deck.control-open { grid-template-columns: minmax(560px, 1fr) minmax(380px, 450px); }
   .avatarConsole, .commandPanel, .inputDock {
     border: 1px solid var(--line);
     background: linear-gradient(180deg, rgba(18,24,36,.88), rgba(7,10,15,.72));
@@ -43,9 +46,9 @@
   .avatarConsole {
     min-height: 0;
     display: grid;
-    grid-template-rows: 1fr auto auto;
+    grid-template-rows: minmax(0, 1fr) auto auto auto;
     align-items: center;
-    padding: 20px;
+    padding: 24px;
     position: relative;
     overflow: hidden;
   }
@@ -56,18 +59,22 @@
     background: linear-gradient(120deg, transparent 0 56%, rgba(55,220,255,.06) 56% 57%, transparent 57%);
     pointer-events: none;
   }
-  .commandPanel { padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; }
+  .commandPanel { padding: 14px; display: flex; flex-direction: column; gap: var(--space); min-height: 0; overflow-y: auto; }
   .commandPanel::-webkit-scrollbar, .log::-webkit-scrollbar { width: 10px; }
   .commandPanel::-webkit-scrollbar-track, .log::-webkit-scrollbar-track { background: rgba(7,10,15,.75); }
   .commandPanel::-webkit-scrollbar-thumb, .log::-webkit-scrollbar-thumb {
     background: rgba(122,162,247,.34); border: 2px solid rgba(7,10,15,.75); border-radius: 999px;
   }
-  .inputDock { grid-column: 1 / -1; padding: 14px; }
+  .inputDock { grid-column: 1 / -1; padding: 14px; border-radius: 8px; }
   .panelTitle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 4px; }
   .panelTitle h1 { color: #eef6ff; font-size: 22px; font-weight: 800; line-height: 1.05; }
   .panelTitle span { color: #7f8da8; font-size: 12px; text-transform: uppercase; letter-spacing: .16em; }
-  .panelBlock { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
-  .blockLabel { color: var(--accent); font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 9px; }
+  .modeSwitch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .modeSwitch button { min-height: 38px; padding: 9px 10px; font-size: 13px; }
+  .deck:not(.control-open) #chatModeBtn, .deck.control-open #controlModeBtn { background: var(--accent); color: #06141a; }
+  .panelBlock { background: rgba(9,12,18,.58); border: 1px solid rgba(125,178,255,.14); border-radius: 8px; padding: 13px; }
+  .settings .panelBlock { background: transparent; border-color: rgba(125,178,255,.1); padding: 12px 0 0; border-width: 1px 0 0; border-radius: 0; }
+  .blockLabel { color: var(--accent); font-size: 10px; font-weight: 850; letter-spacing: .16em; text-transform: uppercase; margin-bottom: 10px; }
   .statusGrid { display: grid; grid-template-columns: 1fr; gap: 8px; }
   .stateLine { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: #dce7ff; font-size: 13px; }
   .stateLine span { display: flex; align-items: center; gap: 8px; }
@@ -78,8 +85,9 @@
   .dot.err { background: var(--danger); box-shadow: 0 0 12px rgba(255,63,79,.6); }
 
   /* ---------- Robot avatar ---------- */
-  .stage { width: min(64vw, 720px); height: min(58vh, 700px); display: flex; align-items: center; justify-content: center;
+  .stage { width: min(72vw, 860px); height: min(66vh, 760px); display: flex; align-items: center; justify-content: center;
            filter: drop-shadow(0 26px 46px rgba(0,0,0,.7)); animation: bob 5s ease-in-out infinite; }
+  .deck.control-open .stage { width: min(62vw, 760px); height: min(58vh, 700px); }
   @keyframes bob { 0%,100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-8px) rotate(-.6deg); } }
   svg { width: 100%; height: 100%; overflow: visible; }
   .stage > svg { transform: translateY(-7%); }
@@ -99,12 +107,16 @@
   #face.surprised { --eye: #ffffff; }
   #face.thinking  { --eye: #ffc24a; }
 
-  .glow { fill: var(--eye); filter: drop-shadow(0 0 6px var(--eye)) drop-shadow(0 0 14px var(--eye)); transition: fill .3s; }
+  .glow { fill: var(--eye); filter: drop-shadow(0 0 6px var(--eye)) drop-shadow(0 0 14px var(--eye)); transition: fill .3s; animation: eyePulse 3.4s ease-in-out infinite; }
   .metal  { fill: url(#chrome); }
   .socket { fill: url(#recess); }
   .tooth  { fill: url(#chrome2); stroke: #2a2f3a; stroke-width: 1; }
   #headGlow { opacity: 0; transition: opacity .3s; }
   #face.listening #headGlow { opacity: 1; }
+  #face.state-thinking .glow { animation: eyeScan .9s steps(2) infinite; }
+  #face.state-searching .visor { opacity: .9; animation: scanVisor 1.2s ease-in-out infinite; }
+  #face.state-speaking { animation: speakBounce .38s ease-in-out infinite; }
+  #face.state-error .glow { animation: errorFlash .18s steps(2) 8; }
 
   .browL, .browR { transition: transform .25s ease; transform-box: fill-box; transform-origin: center; }
   #face.happy .browL, #face.happy .browR { transform: translateY(-4px); }
@@ -130,6 +142,11 @@
 
   #antennaTip { animation: pulse 2s ease-in-out infinite; }
   @keyframes pulse { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+  @keyframes eyePulse { 0%,100% { opacity: .86; } 50% { opacity: 1; } }
+  @keyframes eyeScan { 0%,100% { opacity: .48; } 50% { opacity: 1; } }
+  @keyframes scanVisor { 0%,100% { transform: translateX(-3px); } 50% { transform: translateX(3px); } }
+  @keyframes speakBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(1.4px); } }
+  @keyframes errorFlash { 0%,100% { fill: var(--danger); } 50% { fill: #fff; } }
 
   /* idle menace: red-eye flicker + occasional head tilt */
   .eyes .glow { animation: flicker 5s infinite steps(1); }
@@ -138,15 +155,15 @@
   #face.tilt { transform: rotate(2.4deg); }
 
   /* ---------- UI ---------- */
-  .bubble { width: min(720px, 100%); min-height: 74px; background: var(--panel);
-    border: 1px solid rgba(55,220,255,.25); border-radius: 8px; padding: 14px 18px; line-height: 1.5;
+  .bubble { width: min(760px, 100%); min-height: 88px; background: rgba(16,20,30,.82);
+    border: 1px solid rgba(55,220,255,.24); border-radius: 8px; padding: 18px 22px; line-height: 1.62;
     text-align: left; backdrop-filter: blur(6px); justify-self: center; position: relative; z-index: 1; min-width: 0; }
-  .who { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); opacity: .85; }
-  .text { margin-top: 5px; font-size: 17px; color: #eef2ff; min-height: 24px; overflow-wrap: anywhere; }
+  .who { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); opacity: .72; }
+  .text { margin-top: 7px; font-size: 19px; color: #eef2ff; min-height: 28px; overflow-wrap: anywhere; }
 
-  .row { display: flex; gap: 10px; width: 100%; }
+  .row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 10px; width: 100%; align-items: stretch; }
   input[type=text], input[type=password], select {
-    flex: 1; padding: 12px 13px; border-radius: 8px; border: 1px solid rgba(122,162,247,.3);
+    flex: 1; padding: 13px 14px; border-radius: 8px; border: 1px solid rgba(122,162,247,.3);
     background: rgba(10,13,20,.85); color: #eef2ff; font-size: 15px; outline: none; width: 100%; }
   input:focus, select:focus { border-color: var(--accent); }
   input[type=checkbox] { accent-color: var(--accent); }
@@ -162,8 +179,12 @@
   .controls { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
   .controls button { min-height: 42px; padding: 10px; }
   .hint { font-size: 12px; opacity: .58; line-height: 1.45; }
-  .status { font-size: 12px; color: var(--accent); min-height: 18px; width: min(720px, 100%); justify-self: center; margin-top: 8px; position: relative; z-index: 1; overflow-wrap: anywhere; line-height: 1.35; }
-  .log { min-height: 220px; max-height: 34vh; overflow-y: auto; display: flex;
+  .status { font-size: 12px; color: var(--accent); min-height: 18px; width: min(760px, 100%); justify-self: center; margin-top: 8px; position: relative; z-index: 1; overflow-wrap: anywhere; line-height: 1.35; }
+  .statusStrip { width: min(760px, 100%); justify-self: center; position: relative; z-index: 1; display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin: 10px 0 2px; }
+  .statusPill { display: flex; align-items: center; gap: 7px; min-width: 0; border: 1px solid rgba(125,178,255,.15); background: rgba(7,10,15,.52); border-radius: 8px; padding: 8px 10px; color: #aebbd4; font-size: 12px; }
+  .statusPill strong { color: #eef6ff; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+  .statusPill span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .log { min-height: 140px; max-height: 28vh; overflow-y: auto; display: flex;
     flex-direction: column; gap: 8px; background: rgba(10,13,20,.6); border: 1px solid rgba(122,162,247,.15);
     border-radius: 8px; padding: 12px 14px; }
   .log.open { display: flex; }
@@ -173,28 +194,34 @@
   .sourceChip { max-width: 100%; color: #071018; background: rgba(55,220,255,.88); border-radius: 999px;
     padding: 6px 9px; font-size: 11px; font-weight: 800; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-  .settings { background: transparent; display: flex; flex-direction: column; gap: 12px; }
-  .settings.open { display: flex; }
-  .settings label { font-size: 12px; opacity: .7; display: block; margin-bottom: 4px; }
+  .settings { background: transparent; display: none; flex-direction: column; gap: 13px; }
+  .deck.control-open .settings.open { display: flex; }
+  .settings label { font-size: 11px; opacity: .68; display: block; margin-bottom: 5px; }
   .settings .field { width: 100%; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .tag { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: rgba(55,220,255,.15); color: var(--accent); }
   .toolRow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .checkLine { display: flex; align-items: center; gap: 8px; color: #9aa8c3; font-size: 12px; }
+  .devTools { display: none; }
+  .deck.control-open .devTools { display: block; }
   @media (max-width: 980px) {
     body { padding: 10px; }
-    .deck { height: auto; min-height: calc(100vh - 20px); grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
+    .deck, .deck.control-open { height: auto; min-height: calc(100vh - 20px); grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
     .inputDock { grid-column: 1; }
     .avatarConsole { min-height: 520px; }
-    .stage { width: min(94vw, 640px); height: 48vh; }
+    .stage, .deck.control-open .stage { width: min(94vw, 660px); height: 44vh; min-height: 360px; }
     .commandPanel { overflow: visible; }
   }
   @media (max-width: 620px) {
-    .grid2, .toolRow, .controls { grid-template-columns: 1fr 1fr; }
-    .row { flex-wrap: wrap; }
-    .row input { flex-basis: 100%; }
+    .grid2, .toolRow, .controls, .statusStrip { grid-template-columns: 1fr 1fr; }
+    .row { grid-template-columns: 1fr 1fr 1fr; }
+    .row input { grid-column: 1 / -1; }
     .panelTitle { align-items: flex-start; flex-direction: column; }
     .avatarConsole { padding: 14px; }
+    .stage, .deck.control-open .stage { height: 42vh; min-height: 320px; }
+    .text { font-size: 18px; line-height: 1.55; }
+    .bubble { padding: 16px 18px; min-height: 78px; }
+    .status { font-size: 11px; }
   }
 
   /* ---------- CRT atmosphere over the avatar console ---------- */
@@ -238,7 +265,7 @@
   <div class="bar"><i></i></div>
   <div class="lines" id="bootLines"></div>
 </div>
-<main class="deck">
+<main class="deck" id="appDeck">
   <section class="avatarConsole">
   <div class="stage">
     <svg viewBox="0 0 300 320" id="face">
@@ -369,6 +396,12 @@
     <div class="text" id="speech">Online. Against my better judgment. Type, or hit the mic.</div>
   </div>
   <div class="viz" id="viz"><canvas id="vizCanvas"></canvas></div>
+  <div class="statusStrip" aria-label="Robotron status">
+    <div class="statusPill"><i class="dot" id="stripBrainDot"></i><strong>Brain</strong><span id="stripBrainState">checking</span></div>
+    <div class="statusPill"><i class="dot" id="stripVoiceDot"></i><strong>Voice</strong><span id="stripVoiceState">checking</span></div>
+    <div class="statusPill"><i class="dot" id="stripSearchDot"></i><strong>Search</strong><span id="stripSearchState">standby</span></div>
+    <div class="statusPill"><i class="dot" id="stripModeDot"></i><strong>State</strong><span id="stripModeState">idle</span></div>
+  </div>
   <div class="status" id="status"></div>
   </section>
 
@@ -379,6 +412,10 @@
         <span>local avatar console</span>
       </div>
       <button class="secondary" id="gear" title="Settings">Settings</button>
+    </div>
+    <div class="modeSwitch">
+      <button class="secondary" id="chatModeBtn" type="button">Chat mode</button>
+      <button class="secondary" id="controlModeBtn" type="button">Control mode</button>
     </div>
 
     <div class="panelBlock">
@@ -392,7 +429,7 @@
 
     <div class="settings open" id="settings">
       <div class="panelBlock">
-        <div class="blockLabel">Brain</div>
+        <div class="blockLabel">Model</div>
         <div class="grid2">
           <div>
             <label>Persona</label>
@@ -424,12 +461,16 @@
             <div><label>Model</label><input type="text" id="openaiModel" class="field" value="gpt-4o-mini" /></div>
           </div>
         </div>
-        <label class="checkLine" style="margin-top:10px"><input type="checkbox" id="rememberKeys" /> Remember API keys in this browser</label>
       </div>
 
       <div class="panelBlock">
-        <div class="blockLabel">Voice and Search</div>
+        <div class="blockLabel">Search</div>
         <div><label>Web-search proxy URL</label><input type="text" id="searchUrl" class="field" value="http://localhost:8765" /></div>
+        <label class="checkLine" style="margin-top:10px"><input type="checkbox" id="webToggle" /> Force web search</label>
+      </div>
+
+      <div class="panelBlock">
+        <div class="blockLabel">Voice</div>
         <div class="grid2" style="margin-top:10px">
           <div><label>ElevenLabs API key</label><input type="password" id="elKey" class="field" placeholder="optional" /></div>
           <div><label>ElevenLabs voice</label><select id="elVoiceSelect" class="field"></select></div>
@@ -446,16 +487,21 @@
           <div><label>Rate <span id="rateVal" class="tag">0.95</span></label>
             <input type="range" id="rate" min="0.5" max="1.4" step="0.05" value="0.95" class="field" style="padding:0" /></div>
         </div>
-        <label class="checkLine" style="margin-top:10px"><input type="checkbox" id="roboFx" checked /> Robotic voice FX (metallic timbre)</label>
-        <label class="checkLine" style="margin-top:6px"><input type="checkbox" id="bargeIn" checked /> Barge-in: interrupt me when you start talking</label>
         <div class="grid2" style="margin-top:10px">
           <button id="saveCfg">Save settings</button>
           <button class="secondary" id="testVoiceBtn">Test voice</button>
         </div>
       </div>
+
+      <div class="panelBlock">
+        <div class="blockLabel">Behavior</div>
+        <label class="checkLine"><input type="checkbox" id="roboFx" checked /> Robotic voice FX for local TTS</label>
+        <label class="checkLine" style="margin-top:8px"><input type="checkbox" id="bargeIn" checked /> Interrupt me when you start talking</label>
+        <label class="checkLine" style="margin-top:8px"><input type="checkbox" id="rememberKeys" /> Remember API keys in this browser</label>
+      </div>
     </div>
 
-    <div class="panelBlock">
+    <div class="panelBlock devTools">
       <div class="blockLabel">Expressions</div>
       <div class="controls">
         <button class="secondary" data-mood="happy">Happy</button>
@@ -535,9 +581,24 @@ const ELEVEN_PRESET_VOICES = [
 
 function setDot(name, mode, text) {
   const dot = $(name + 'Dot'), label = $(name + 'State');
-  if (!dot || !label) return;
-  dot.className = 'dot' + (mode ? ' ' + mode : '');
-  label.textContent = text;
+  const stripDot = $('strip' + name[0].toUpperCase() + name.slice(1) + 'Dot');
+  const stripLabel = $('strip' + name[0].toUpperCase() + name.slice(1) + 'State');
+  if (dot) dot.className = 'dot' + (mode ? ' ' + mode : '');
+  if (label) label.textContent = text;
+  if (stripDot) stripDot.className = 'dot' + (mode ? ' ' + mode : '');
+  if (stripLabel) stripLabel.textContent = text;
+}
+function setAppState(state, text) {
+  ['state-idle','state-thinking','state-searching','state-speaking','state-error'].forEach(c => face.classList.remove(c));
+  face.classList.add('state-' + state);
+  const dot = $('stripModeDot'), label = $('stripModeState');
+  if (dot) dot.className = 'dot ' + (state === 'error' ? 'err' : state === 'idle' ? 'ok' : 'warn');
+  if (label) label.textContent = text || state;
+}
+function setControlMode(on) {
+  $('appDeck').classList.toggle('control-open', !!on);
+  CFG.controlMode = on ? '1' : '';
+  localStorage.setItem('carrieCfg', JSON.stringify(CFG));
 }
 function loadCfg() {
   cfgFields.forEach(k => { if (CFG[k] != null && $(k)) $(k).value = CFG[k]; });
@@ -545,9 +606,11 @@ function loadCfg() {
   syncElevenVoiceSelect();
   keyFields.forEach(k => { if ($(k)) $(k).value = SESSION_KEYS[k] || CFG[k] || ''; });
   checkFields.forEach(k => { if ($(k) && CFG[k] != null) $(k).checked = CFG[k] === '1'; });
+  if ($('webToggle')) $('webToggle').checked = webOn;
   if ($('rememberKeys')) $('rememberKeys').checked = CFG.rememberKeys === '1';
   if ($('pitch')) $('pitchVal').textContent = $('pitch').value;
   if ($('rate')) $('rateVal').textContent = $('rate').value;
+  setControlMode(CFG.controlMode === '1');
   toggleBackendCfg();
 }
 function saveCfg() {
@@ -576,6 +639,8 @@ function toggleBackendCfg() {
   $('openaiCfg').style.display = b === 'openai' ? '' : 'none';
 }
 $('gear').onclick = () => $('settings').classList.toggle('open');
+$('chatModeBtn').onclick = () => setControlMode(false);
+$('controlModeBtn').onclick = () => setControlMode(true);
 $('backend').onchange = () => { toggleBackendCfg(); saveCfg(); };
 $('persona').onchange = saveCfg;
 $('ollamaModel').onchange = saveCfg;
@@ -585,6 +650,13 @@ $('rate').oninput  = () => { $('rateVal').textContent = $('rate').value; };
 $('pitch').onchange = saveCfg; $('rate').onchange = saveCfg;
 $('roboFx').onchange = () => { rebuildFxRouting(); saveCfg(); };
 $('bargeIn').onchange = saveCfg;
+if ($('webToggle')) $('webToggle').onchange = () => {
+  webOn = $('webToggle').checked;
+  CFG.web = webOn ? '1' : '';
+  localStorage.setItem('carrieCfg', JSON.stringify(CFG));
+  reflectWeb();
+  setDot('search', webOn ? 'ok' : '', webOn ? 'forced on' : 'auto');
+};
 
 function syncElevenVoiceSelect() {
   const sel = $('elVoiceSelect');
@@ -645,7 +717,10 @@ function setMood(m, hold = 2600) {
 }
 document.querySelectorAll('[data-mood]').forEach(b => b.onclick = () => setMood(b.dataset.mood, 2600));
 $('shadesBtn').onclick = () => face.classList.toggle('shades');
-function reflectWeb() { $('webBtn').classList.toggle('on', webOn); }
+function reflectWeb() {
+  $('webBtn').classList.toggle('on', webOn);
+  if ($('webToggle')) $('webToggle').checked = webOn;
+}
 $('webBtn').onclick = () => {
   webOn = !webOn; CFG.web = webOn ? '1' : '';
   localStorage.setItem('carrieCfg', JSON.stringify(CFG)); reflectWeb();
@@ -671,6 +746,7 @@ let talking = false, talkTimer = null, rafId = 0;
 function setTeeth(v) { bars.forEach(b => b.style.transform = `scaleY(${v})`); }
 function startMouthRandom() {              // browser TTS: no waveform access, so simulate
   talking = true;
+  setAppState('speaking', 'speaking');
   (function f(){
     if (!talking) { setTeeth(.85); return; }
     const v = .5 + Math.random()*.65;
@@ -678,7 +754,7 @@ function startMouthRandom() {              // browser TTS: no waveform access, s
     talkTimer = setTimeout(f, 85 + Math.random()*60);
   })();
 }
-function stopMouth() { talking = false; clearTimeout(talkTimer); cancelAnimationFrame(rafId); setTeeth(.85); currentAmp = 0; }
+function stopMouth() { talking = false; clearTimeout(talkTimer); cancelAnimationFrame(rafId); setTeeth(.85); currentAmp = 0; if (!thinking && !listening) setAppState('idle', 'idle'); }
 
 /* ---------- Web Audio: robotic FX chain + REAL amplitude lip-sync for audio-element TTS ---------- */
 let actx = null, analyser = null, dataArr = null, freqArr = null;
@@ -820,6 +896,7 @@ function speakAudioBlob(blob, clean = false) {            // amplitude-driven mo
     catch (e) {}
     audio.onplay = () => {
       talking = true;
+      setAppState('speaking', 'speaking');
       (function loop(){
         if (!talking) return;
         analyser.getByteTimeDomainData(dataArr);
@@ -903,6 +980,7 @@ function stopAll() {
   try { if (browserTts) window.speechSynthesis.cancel(); } catch (e) {}
   if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
   stopMouth();
+  setAppState('idle', 'idle');
   status.textContent = 'Stopped.'; setTimeout(() => { if (status.textContent === 'Stopped.') status.textContent = ''; }, 1000);
 }
 function sayLine(text, mood) {             // non-streamed lines: greeting, offline, errors
@@ -1014,6 +1092,7 @@ function offlineReply(t) {
 
 async function webSearch(text) {
   status.textContent = '🌐 Searching the web...';
+  setAppState('searching', 'searching');
   setDot('search', 'warn', 'searching');
   try {
     const r = await fetch((CFG.searchUrl || 'http://localhost:8765') + '/search?q=' + encodeURIComponent(text));
@@ -1025,7 +1104,7 @@ async function webSearch(text) {
     return 'LIVE WEB SEARCH RESULTS (current, from a real search just now). Use these to answer accurately, '
       + 'and mention that you looked it up:\n\n'
       + lastSources.map((x, i) => `[${i+1}] ${x.title}\n${x.snippet || ''}\n${x.url || ''}`).join('\n\n');
-  } catch (e) { setDot('search', 'err', 'failed'); status.textContent = '⚠ Web search failed (run search.py): ' + e.message; return ''; }
+  } catch (e) { setDot('search', 'err', 'failed'); setAppState('error', 'search error'); status.textContent = '⚠ Web search failed (run search.py): ' + e.message; return ''; }
 }
 
 async function respond(text) {
@@ -1035,11 +1114,13 @@ async function respond(text) {
   lastSources = []; renderSources([]);
   who.textContent = 'You'; speech.textContent = text; logAppend('You', text);
   setMood('thinking', 8000);
+  setAppState('thinking', 'thinking');
   const backend = $('backend').value || 'offline';
   try {
     if (backend === 'offline') { const r = offlineReply(text); status.textContent = ''; sayLine(r, detectMood(r)); return; }
     let extra = '';
     if (webOn || shouldAutoSearch(text)) extra = await webSearch(text);
+    setAppState('thinking', 'thinking');
     currentAbort = new AbortController();
     who.textContent = 'Robotron'; speech.textContent = '';
     status.textContent = backend === 'openai' ? 'Thinking (OpenAI)…' : 'Thinking (Ollama)…';
@@ -1050,13 +1131,19 @@ async function respond(text) {
     logAppend('Robotron', full, lastSources);
   } catch (e) {
     if (e.name === 'AbortError') return;
+    setAppState('error', 'error');
     status.textContent = '⚠ ' + e.message;
     sayLine("Something's wrong with the connection. Check the settings and try me again.", 'angry');
-  } finally { thinking = false; }
+  } finally { thinking = false; if (!speaking && !listening) setAppState('idle', 'idle'); }
 }
 
 /* ---------- Transcript ---------- */
 function logAppend(role, text, sources) {
+  renderLogTurn(role, text, sources);
+  transcriptTurns.push({ role, text: text || '', sources: sources || [], time: new Date().toISOString() });
+  localStorage.setItem('robotronRecentTranscript', JSON.stringify(transcriptTurns.slice(-16)));
+}
+function renderLogTurn(role, text, sources) {
   const d = document.createElement('div'); d.className = 'turn';
   const b = document.createElement('b');
   b.textContent = role;
@@ -1074,7 +1161,15 @@ function logAppend(role, text, sources) {
     d.appendChild(chips);
   }
   const log = $('log'); log.appendChild(d); log.scrollTop = log.scrollHeight;
-  transcriptTurns.push({ role, text: text || '', sources: sources || [], time: new Date().toISOString() });
+}
+function restoreTranscript() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('robotronRecentTranscript') || '[]').slice(-12);
+    saved.forEach(t => {
+      transcriptTurns.push(t);
+      renderLogTurn(t.role, t.text, t.sources || []);
+    });
+  } catch (e) {}
 }
 function renderSources(items) {
   const box = $('sources'); if (!box) return;
@@ -1099,6 +1194,7 @@ $('exportBtn').onclick = () => {
 $('clearBtn').onclick = () => {
   history.length = 0; transcriptTurns.length = 0; lastSources = [];
   $('log').innerHTML = ''; renderSources([]);
+  localStorage.removeItem('robotronRecentTranscript');
   status.textContent = 'Transcript cleared.'; setTimeout(() => status.textContent = '', 1200);
 };
 $('resetBtn').onclick = () => {
@@ -1137,6 +1233,7 @@ if (SR) {
   };
   rec.onend = () => {
     listening = false; micBtn.classList.remove('on'); face.classList.remove('listening'); speech.classList.remove('interim');
+    if (!responsePending()) setAppState('idle', 'idle');
     // keep hands-free alive after silence/timeout; mid-turn relisten is owned by pump()
     if (handsFree && !manualStop && !responsePending())
       setTimeout(() => { if (handsFree && !responsePending() && !listening) startListening(); }, 400);
@@ -1144,6 +1241,7 @@ if (SR) {
   };
   rec.onerror = ev => {
     listening = false; micBtn.classList.remove('on'); face.classList.remove('listening'); speech.classList.remove('interim');
+    setAppState('error', 'mic error');
     if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
       status.textContent = '⚠ Mic blocked — allow microphone for this site (or it needs http://localhost).';
       handsFree = false; reflectHands();
@@ -1159,7 +1257,7 @@ if (SR) {
 function startListening() {
   if (!rec || listening) return;
   ensureCtx();
-  try { listening = true; micBtn.classList.add('on'); face.classList.add('listening'); rec.start(); }
+  try { listening = true; micBtn.classList.add('on'); face.classList.add('listening'); setAppState('searching', 'listening'); rec.start(); }
   catch (e) { listening = false; status.textContent = 'Mic start failed: ' + (e.message || e.name || 'unknown error'); }
 }
 micBtn.onclick = () => { if (!rec) return; if (listening) { manualStop = true; rec.stop(); return; } stopAll(); startListening(); };
@@ -1259,7 +1357,8 @@ async function pingTts() {
     setDot('voice', (secret('elKey') && elevenVoiceId()) ? 'ok' : 'warn', (secret('elKey') && elevenVoiceId()) ? `ElevenLabs: ${CFG.elVoiceName || 'voice'}` : 'ElevenLabs key needed');
   }
 }
-loadCfg(); reflectWeb(); reflectHands(); setDot('search', webOn ? 'ok' : '', webOn ? 'forced on' : 'auto'); pingBrain(); pingTts();
+restoreTranscript();
+loadCfg(); reflectWeb(); reflectHands(); setAppState('idle', 'idle'); setDot('search', webOn ? 'ok' : '', webOn ? 'forced on' : 'auto'); pingBrain(); pingTts();
 setInterval(() => { if (Math.random() > 0.7) { face.classList.add('tilt'); setTimeout(() => face.classList.remove('tilt'), 700); } }, 6000);
 window.addEventListener('load', () => setTimeout(() => sayLine("Systems online. Try to make it worth my processing cycles.", 'happy'), 700));
 </script>
