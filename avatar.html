@@ -6,24 +6,78 @@
 <title>Robotron</title>
 <style>
   :root {
-    --bg1: #0a0d14; --bg2: #141a28;
-    --accent: #37dcff; --accent2: #7aa2f7; --panel: rgba(18,22,34,.92);
+    --bg1: #07090d; --bg2: #101621;
+    --accent: #37dcff; --accent2: #8ab4ff; --danger: #ff3f4f; --warn: #ffc24a;
+    --panel: rgba(16,20,30,.86); --panel2: rgba(9,12,18,.78); --line: rgba(125,178,255,.18);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
   body {
     font-family: "Inter", system-ui, sans-serif;
-    background: radial-gradient(circle at 50% 18%, var(--bg2), var(--bg1));
+    background:
+      linear-gradient(90deg, rgba(55,220,255,.04) 1px, transparent 1px),
+      linear-gradient(0deg, rgba(55,220,255,.035) 1px, transparent 1px),
+      radial-gradient(circle at 34% 14%, #18253a, transparent 42%),
+      radial-gradient(circle at 78% 78%, rgba(255,63,79,.13), transparent 32%),
+      var(--bg1);
+    background-size: 42px 42px, 42px 42px, auto, auto, auto;
     color: #c8d3f5;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    min-height: 100vh; gap: 22px; padding: 24px;
+    min-height: 100vh; padding: 18px;
+    overflow-x: hidden;
   }
+  .deck {
+    width: min(1440px, 100%);
+    height: calc(100vh - 36px);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(420px, 1fr) minmax(360px, 440px);
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 16px;
+  }
+  .avatarConsole, .commandPanel, .inputDock {
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(18,24,36,.88), rgba(7,10,15,.72));
+    box-shadow: 0 20px 60px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.04);
+    backdrop-filter: blur(10px);
+  }
+  .avatarConsole {
+    min-height: 0;
+    display: grid;
+    grid-template-rows: 1fr auto auto;
+    align-items: center;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .avatarConsole::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent 0 56%, rgba(55,220,255,.06) 56% 57%, transparent 57%);
+    pointer-events: none;
+  }
+  .commandPanel { padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; }
+  .inputDock { grid-column: 1 / -1; padding: 14px; }
+  .panelTitle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 4px; }
+  .panelTitle h1 { color: #eef6ff; font-size: 22px; font-weight: 800; line-height: 1.05; }
+  .panelTitle span { color: #7f8da8; font-size: 12px; text-transform: uppercase; letter-spacing: .16em; }
+  .panelBlock { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+  .blockLabel { color: var(--accent); font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 9px; }
+  .statusGrid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .stateLine { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: #dce7ff; font-size: 13px; }
+  .stateLine span { display: flex; align-items: center; gap: 8px; }
+  .stateLine small { color: #7f8da8; font-size: 11px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #536070; box-shadow: 0 0 0 3px rgba(83,96,112,.13); flex: 0 0 auto; }
+  .dot.ok { background: var(--accent); box-shadow: 0 0 12px rgba(55,220,255,.7); }
+  .dot.warn { background: var(--warn); box-shadow: 0 0 12px rgba(255,194,74,.6); }
+  .dot.err { background: var(--danger); box-shadow: 0 0 12px rgba(255,63,79,.6); }
 
   /* ---------- Robot avatar ---------- */
-  .stage { width: min(92vw, 680px); height: min(64vh, 720px); display: flex; align-items: center; justify-content: center;
+  .stage { width: min(64vw, 720px); height: min(58vh, 700px); display: flex; align-items: center; justify-content: center;
            filter: drop-shadow(0 26px 46px rgba(0,0,0,.7)); animation: bob 5s ease-in-out infinite; }
   @keyframes bob { 0%,100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-8px) rotate(-.6deg); } }
   svg { width: 100%; height: 100%; overflow: visible; }
+  .stage > svg { transform: translateY(-7%); }
 
   /* mood drives one CSS variable that colors every glowing element */
   #face { --eye: #ff2d2d; }
@@ -72,18 +126,19 @@
   #face.tilt { transform: rotate(2.4deg); }
 
   /* ---------- UI ---------- */
-  .bubble { max-width: 560px; width: 92%; min-height: 60px; background: var(--panel);
-    border: 1px solid rgba(55,220,255,.25); border-radius: 16px; padding: 14px 20px; line-height: 1.5;
-    text-align: center; backdrop-filter: blur(6px); }
+  .bubble { width: min(720px, 100%); min-height: 74px; background: var(--panel);
+    border: 1px solid rgba(55,220,255,.25); border-radius: 8px; padding: 14px 18px; line-height: 1.5;
+    text-align: left; backdrop-filter: blur(6px); justify-self: center; position: relative; z-index: 1; }
   .who { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); opacity: .85; }
   .text { margin-top: 5px; font-size: 17px; color: #eef2ff; min-height: 24px; }
 
-  .row { display: flex; gap: 10px; width: 92%; max-width: 560px; }
+  .row { display: flex; gap: 10px; width: 100%; }
   input[type=text], input[type=password], select {
-    flex: 1; padding: 13px 15px; border-radius: 12px; border: 1px solid rgba(122,162,247,.3);
+    flex: 1; padding: 12px 13px; border-radius: 8px; border: 1px solid rgba(122,162,247,.3);
     background: rgba(10,13,20,.85); color: #eef2ff; font-size: 15px; outline: none; width: 100%; }
   input:focus, select:focus { border-color: var(--accent); }
-  button { padding: 13px 17px; border-radius: 12px; border: none; cursor: pointer;
+  input[type=checkbox] { accent-color: var(--accent); }
+  button { padding: 12px 14px; border-radius: 8px; border: none; cursor: pointer;
     background: var(--accent); color: #06141a; font-weight: 700; font-size: 15px; transition: transform .1s, opacity .2s; }
   button.secondary { background: rgba(122,162,247,.15); color: var(--accent2); font-weight: 600; }
   button:active { transform: scale(.95); }
@@ -92,27 +147,47 @@
   #handsBtn.on { background: #f7768e; color: #fff; }
   #stopBtn { background: rgba(247,118,142,.18); color: #f7768e; font-weight: 600; }
   @keyframes micpulse { 0%,100% { box-shadow: 0 0 0 0 rgba(247,118,142,.5);} 50% { box-shadow: 0 0 0 12px rgba(247,118,142,0);} }
-  .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; }
-  .hint { font-size: 12px; opacity: .5; max-width: 560px; text-align: center; }
-  .status { font-size: 12px; color: var(--accent); min-height: 16px; }
-  .log { width: 92%; max-width: 560px; max-height: 220px; overflow-y: auto; display: none;
+  .controls { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+  .controls button { min-height: 42px; padding: 10px; }
+  .hint { font-size: 12px; opacity: .58; line-height: 1.45; }
+  .status { font-size: 12px; color: var(--accent); min-height: 18px; width: min(720px, 100%); justify-self: center; margin-top: 8px; position: relative; z-index: 1; overflow-wrap: anywhere; line-height: 1.35; }
+  .log { min-height: 220px; max-height: 34vh; overflow-y: auto; display: flex;
     flex-direction: column; gap: 8px; background: rgba(10,13,20,.6); border: 1px solid rgba(122,162,247,.15);
-    border-radius: 14px; padding: 12px 14px; }
+    border-radius: 8px; padding: 12px 14px; }
   .log.open { display: flex; }
   .log .turn { font-size: 14px; line-height: 1.45; color: #dbe3f7; }
   .log .turn b { color: var(--accent); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; margin-right: 6px; }
+  .sources { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; min-height: 28px; }
+  .sourceChip { max-width: 100%; color: #071018; background: rgba(55,220,255,.88); border-radius: 999px;
+    padding: 6px 9px; font-size: 11px; font-weight: 800; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-  .settings { width: 92%; max-width: 560px; background: var(--panel); border: 1px solid rgba(122,162,247,.2);
-    border-radius: 16px; padding: 18px; display: none; flex-direction: column; gap: 12px; }
+  .settings { background: transparent; display: flex; flex-direction: column; gap: 12px; }
   .settings.open { display: flex; }
   .settings label { font-size: 12px; opacity: .7; display: block; margin-bottom: 4px; }
   .settings .field { width: 100%; }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .tag { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: rgba(55,220,255,.15); color: var(--accent); }
+  .toolRow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .checkLine { display: flex; align-items: center; gap: 8px; color: #9aa8c3; font-size: 12px; }
+  @media (max-width: 980px) {
+    body { padding: 10px; }
+    .deck { height: auto; min-height: calc(100vh - 20px); grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
+    .inputDock { grid-column: 1; }
+    .avatarConsole { min-height: 520px; }
+    .stage { width: min(94vw, 640px); height: 48vh; }
+    .commandPanel { overflow: visible; }
+  }
+  @media (max-width: 620px) {
+    .grid2, .toolRow, .controls { grid-template-columns: 1fr 1fr; }
+    .row { flex-wrap: wrap; }
+    .row input { flex-basis: 100%; }
+    .panelTitle { align-items: flex-start; flex-direction: column; }
+  }
 </style>
 </head>
 <body>
-
+<main class="deck">
+  <section class="avatarConsole">
   <div class="stage">
     <svg viewBox="0 0 300 320" id="face">
       <defs>
@@ -221,70 +296,116 @@
     <div class="text" id="speech">Online. Against my better judgment. Type, or hit the mic.</div>
   </div>
   <div class="status" id="status"></div>
+  </section>
 
+  <aside class="commandPanel">
+    <div class="panelTitle">
+      <div>
+        <h1>Robotron Command Deck</h1>
+        <span>local avatar console</span>
+      </div>
+      <button class="secondary" id="gear" title="Settings">Settings</button>
+    </div>
+
+    <div class="panelBlock">
+      <div class="blockLabel">Systems</div>
+      <div class="statusGrid">
+        <div class="stateLine"><span><i class="dot" id="brainDot"></i> Brain</span><small id="brainState">checking</small></div>
+        <div class="stateLine"><span><i class="dot" id="voiceDot"></i> Voice</span><small id="voiceState">checking</small></div>
+        <div class="stateLine"><span><i class="dot" id="searchDot"></i> Search</span><small id="searchState">standby</small></div>
+      </div>
+    </div>
+
+    <div class="settings open" id="settings">
+      <div class="panelBlock">
+        <div class="blockLabel">Brain</div>
+        <div class="grid2">
+          <div>
+            <label>Persona</label>
+            <select id="persona" class="field">
+              <option value="robotron">Robotron</option>
+              <option value="carrie">Carrie</option>
+              <option value="merciful">Less savage</option>
+              <option value="analyst">Technical analyst</option>
+            </select>
+          </div>
+          <div>
+            <label>Backend</label>
+            <select id="backend" class="field">
+              <option value="offline">Offline</option>
+              <option value="ollama" selected>Ollama</option>
+              <option value="openai">OpenAI API</option>
+            </select>
+          </div>
+        </div>
+        <div id="ollamaCfg" style="margin-top:10px">
+          <div class="grid2">
+            <div><label>Ollama URL</label><input type="text" id="ollamaUrl" class="field" value="http://localhost:11434" /></div>
+            <div><label>Model</label><select id="ollamaModel" class="field"><option value="llama3.2">llama3.2</option><option value="qwen2.5:7b">qwen2.5:7b</option></select></div>
+          </div>
+        </div>
+        <div id="openaiCfg" style="display:none; margin-top:10px">
+          <div class="grid2">
+            <div><label>OpenAI API key</label><input type="password" id="openaiKey" class="field" placeholder="sk-..." /></div>
+            <div><label>Model</label><input type="text" id="openaiModel" class="field" value="gpt-4o-mini" /></div>
+          </div>
+        </div>
+        <label class="checkLine" style="margin-top:10px"><input type="checkbox" id="rememberKeys" /> Remember API keys in this browser</label>
+      </div>
+
+      <div class="panelBlock">
+        <div class="blockLabel">Voice and Search</div>
+        <div><label>Web-search proxy URL</label><input type="text" id="searchUrl" class="field" value="http://localhost:8765" /></div>
+        <div class="grid2" style="margin-top:10px">
+          <div><label>ElevenLabs API key</label><input type="password" id="elKey" class="field" placeholder="optional" /></div>
+          <div><label>ElevenLabs Voice ID</label><input type="text" id="elVoice" class="field" placeholder="optional" /></div>
+        </div>
+        <div style="margin-top:10px"><label>Local TTS proxy URL</label><input type="text" id="ttsUrl" class="field" value="http://localhost:8766" /></div>
+        <div style="margin-top:10px"><label>Browser voice</label><select id="voiceSel" class="field"></select></div>
+        <div class="grid2" style="margin-top:10px">
+          <button id="saveCfg">Save settings</button>
+          <button class="secondary" id="testVoiceBtn">Test voice</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panelBlock">
+      <div class="blockLabel">Expressions</div>
+      <div class="controls">
+        <button class="secondary" data-mood="happy">Happy</button>
+        <button class="secondary" data-mood="angry">Angry</button>
+        <button class="secondary" data-mood="thinking">Think</button>
+        <button class="secondary" data-mood="surprised">Shock</button>
+        <button class="secondary" data-mood="sad">Sad</button>
+        <button class="secondary" id="webBtn" title="Toggle live web search">Web</button>
+        <button class="secondary" id="handsBtn" title="Hands-free conversation">Loop</button>
+        <button class="secondary" id="shadesBtn" title="Visor">Visor</button>
+      </div>
+    </div>
+
+    <div class="panelBlock">
+      <div class="blockLabel">Transcript</div>
+      <div class="log open" id="log"></div>
+      <div class="sources" id="sources"></div>
+      <div class="toolRow" style="margin-top:10px">
+        <button class="secondary" id="exportBtn">Export</button>
+        <button class="secondary" id="clearBtn">Clear</button>
+        <button class="secondary" id="resetBtn">Reset</button>
+      </div>
+    </div>
+
+    <div class="hint">Keys stay session-only unless remembered. Search results appear as chips when Robotron looks something up.</div>
+  </aside>
+
+  <section class="inputDock">
   <div class="row">
     <input type="text" id="input" placeholder="Say something..." autocomplete="off" />
     <button id="send">Send</button>
     <button id="mic" class="mic secondary" title="Voice input">🎤</button>
+    <button class="secondary" id="stopBtn" title="Stop talking">Stop</button>
   </div>
-
-  <div class="controls">
-    <button class="secondary" data-mood="happy">😊</button>
-    <button class="secondary" data-mood="angry">😠</button>
-    <button class="secondary" data-mood="thinking">🤔</button>
-    <button class="secondary" data-mood="surprised">😮</button>
-    <button class="secondary" data-mood="sad">😢</button>
-    <button class="secondary" id="webBtn" title="Toggle live web search">🌐 Web</button>
-    <button class="secondary" id="handsBtn" title="Hands-free conversation">🔁 Hands-free</button>
-    <button class="secondary" id="stopBtn" title="Stop talking">⏹ Stop</button>
-    <button class="secondary" id="logBtn" title="Show transcript">📜 Log</button>
-    <button class="secondary" id="shadesBtn" title="Visor">🕶️</button>
-    <button class="secondary" id="gear" title="Settings">⚙️ Settings</button>
-  </div>
-
-  <div class="log" id="log"></div>
-
-  <div class="settings" id="settings">
-    <div>
-      <label>Brain (where replies come from)</label>
-      <select id="backend" class="field">
-        <option value="offline">Offline (no AI — keyword replies)</option>
-        <option value="ollama" selected>Ollama (local, free)</option>
-        <option value="openai">OpenAI API (metered / pay-as-you-go)</option>
-      </select>
-    </div>
-    <div id="ollamaCfg">
-      <div class="grid2">
-        <div><label>Ollama URL</label><input type="text" id="ollamaUrl" class="field" value="http://localhost:11434" /></div>
-        <div><label>Model <span class="tag">qwen2.5:7b = smarter · llama3.2 = faster</span></label><input type="text" id="ollamaModel" class="field" value="qwen2.5:7b" /></div>
-      </div>
-    </div>
-    <div id="openaiCfg" style="display:none">
-      <div class="grid2">
-        <div><label>OpenAI API key <span class="tag">stays in your browser</span></label><input type="password" id="openaiKey" class="field" placeholder="sk-..." /></div>
-        <div><label>Model</label><input type="text" id="openaiModel" class="field" value="gpt-4o-mini" /></div>
-      </div>
-    </div>
-    <div>
-      <label>Web-search proxy URL <span class="tag">the 🌐 toggle injects live results into the prompt</span></label>
-      <input type="text" id="searchUrl" class="field" value="http://localhost:8765" />
-    </div>
-
-    <hr style="border-color:rgba(122,162,247,.15)" />
-    <div>
-      <label>Voice <span class="tag">leave ElevenLabs blank for built-in deep male voice</span></label>
-      <div class="grid2">
-        <div><label>ElevenLabs API key (optional — best quality)</label><input type="password" id="elKey" class="field" placeholder="optional" /></div>
-        <div><label>ElevenLabs Voice ID</label><input type="text" id="elVoice" class="field" placeholder="a deep male voice id" /></div>
-      </div>
-      <div style="margin-top:8px"><label>Local TTS proxy URL <span class="tag">Piper — better than browser voice, real lip-sync</span></label>
-        <input type="text" id="ttsUrl" class="field" value="http://localhost:8766" /></div>
-      <div style="margin-top:8px"><label>Browser voice (last-resort fallback)</label><select id="voiceSel" class="field"></select></div>
-    </div>
-    <button id="saveCfg">Save settings</button>
-  </div>
-
-  <div class="hint">Robot face: eye color shifts with mood, mouth reacts to speech. Brain + voice in ⚙️. Ollama needs <code>OLLAMA_ORIGINS=*</code>. All local; keys never leave your browser.</div>
+  </section>
+</main>
 
 <script>
 window.onerror = function(msg, src, line, col){
@@ -298,17 +419,40 @@ const input = $('input'), micBtn = $('mic');
 
 /* ---------- Settings ---------- */
 const CFG = JSON.parse(localStorage.getItem('carrieCfg') || '{}');
-const cfgFields = ['backend','ollamaUrl','ollamaModel','openaiKey','openaiModel','elKey','elVoice','searchUrl','ttsUrl'];
+const SESSION_KEYS = JSON.parse(sessionStorage.getItem('robotronKeys') || '{}');
+const cfgFields = ['persona','backend','ollamaUrl','ollamaModel','openaiModel','elVoice','searchUrl','ttsUrl'];
+const keyFields = ['openaiKey','elKey'];
 let webOn = CFG.web === '1';
 let handsFree = CFG.hf === '1';
 let ttsReady = false;   // set true once a local Piper proxy answers
-function loadCfg() { cfgFields.forEach(k => { if (CFG[k] != null && $(k)) $(k).value = CFG[k]; }); toggleBackendCfg(); }
+let lastSources = [];
+const transcriptTurns = [];
+
+function setDot(name, mode, text) {
+  const dot = $(name + 'Dot'), label = $(name + 'State');
+  if (!dot || !label) return;
+  dot.className = 'dot' + (mode ? ' ' + mode : '');
+  label.textContent = text;
+}
+function loadCfg() {
+  cfgFields.forEach(k => { if (CFG[k] != null && $(k)) $(k).value = CFG[k]; });
+  keyFields.forEach(k => { if ($(k)) $(k).value = SESSION_KEYS[k] || CFG[k] || ''; });
+  if ($('rememberKeys')) $('rememberKeys').checked = CFG.rememberKeys === '1';
+  toggleBackendCfg();
+}
 function saveCfg() {
   cfgFields.forEach(k => { if ($(k)) CFG[k] = $(k).value; });
+  CFG.rememberKeys = $('rememberKeys').checked ? '1' : '';
+  keyFields.forEach(k => {
+    if (!$(k)) return;
+    if ($('rememberKeys').checked) CFG[k] = $(k).value;
+    else { SESSION_KEYS[k] = $(k).value; delete CFG[k]; }
+  });
   CFG.voiceIdx = $('voiceSel').value;
   localStorage.setItem('carrieCfg', JSON.stringify(CFG));
+  sessionStorage.setItem('robotronKeys', JSON.stringify(SESSION_KEYS));
   status.textContent = 'Settings saved.'; setTimeout(() => status.textContent = '', 1500);
-  $('settings').classList.remove('open');
+  pingBrain(); pingTts();
 }
 function toggleBackendCfg() {
   const b = $('backend').value;
@@ -316,7 +460,9 @@ function toggleBackendCfg() {
   $('openaiCfg').style.display = b === 'openai' ? '' : 'none';
 }
 $('gear').onclick = () => $('settings').classList.toggle('open');
-$('backend').onchange = toggleBackendCfg;
+$('backend').onchange = () => { toggleBackendCfg(); saveCfg(); };
+$('persona').onchange = saveCfg;
+$('ollamaModel').onchange = saveCfg;
 $('saveCfg').onclick = saveCfg;
 
 /* ---------- Expressions ---------- */
@@ -332,6 +478,7 @@ function reflectWeb() { $('webBtn').classList.toggle('on', webOn); }
 $('webBtn').onclick = () => {
   webOn = !webOn; CFG.web = webOn ? '1' : '';
   localStorage.setItem('carrieCfg', JSON.stringify(CFG)); reflectWeb();
+  setDot('search', webOn ? 'ok' : '', webOn ? 'forced on' : 'auto');
   status.textContent = webOn ? '🌐 Web search ON' : 'Web search off';
   setTimeout(() => { if (status.textContent.includes('Web search')) status.textContent = ''; }, 1500);
 };
@@ -421,9 +568,11 @@ function speakAudioBlob(blob) {            // amplitude-driven mouth from the ac
     audio.play().catch(() => { stopMouth(); res(); });
   });
 }
+function secret(k) { return ($(k) && $(k).value) || SESSION_KEYS[k] || CFG[k] || ''; }
+
 async function elevenBlob(text) {
   const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${CFG.elVoice}`, {
-    method: 'POST', headers: { 'xi-api-key': CFG.elKey, 'Content-Type': 'application/json' },
+    method: 'POST', headers: { 'xi-api-key': secret('elKey'), 'Content-Type': 'application/json' },
     body: JSON.stringify({ text, model_id: 'eleven_multilingual_v2', voice_settings: { stability: 0.45, similarity_boost: 0.85 } })
   });
   if (!r.ok) throw new Error('EL ' + r.status);
@@ -436,7 +585,7 @@ async function piperBlob(text) {
 }
 async function speakOne(item) {
   setMood(item.mood || detectMood(item.text), 3600);
-  if (CFG.elKey && CFG.elVoice) { try { return await speakAudioBlob(await elevenBlob(item.text)); } catch (e) {} }
+  if (secret('elKey') && CFG.elVoice) { try { return await speakAudioBlob(await elevenBlob(item.text)); } catch (e) {} }
   if (ttsReady)               { try { return await speakAudioBlob(await piperBlob(item.text)); } catch (e) {} }
   return speakBrowser(item.text);
 }
@@ -470,9 +619,17 @@ function sayLine(text, mood) {             // non-streamed lines: greeting, offl
 }
 
 /* ---------- Brain ---------- */
-const SYSTEM = `You are Robotron, a deeply cynical, sardonic AI assistant. You answer correctly and are genuinely
+const PERSONAS = {
+  robotron: `You are Robotron, a deeply cynical, sardonic AI assistant. You answer correctly and are genuinely
 useful, but everything is delivered with dry, world-weary pessimism, deadpan sarcasm, and a low opinion of humanity's
-choices. Sharp wit, no false cheer. Keep replies to 1-3 short, punchy sentences. No stage directions, just speech.`;
+choices. Sharp wit, no false cheer. Keep replies to 1-3 short, punchy sentences. No stage directions, just speech.`,
+  carrie: `You are Carrie, a warm but darkly funny local AI avatar. You are practical, emotionally observant,
+slightly theatrical, and loyal to the user. Keep replies conversational, useful, and concise.`,
+  merciful: `You are Robotron with the aggression dial turned down. Be direct, dry, and funny, but never cruel.
+Prioritize usefulness and clarity over sarcasm. Keep replies to 1-3 concise sentences.`,
+  analyst: `You are Robotron in technical analyst mode. Give precise, structured answers with minimal jokes.
+Prefer clear assumptions, risks, commands, and next steps. Keep replies short unless the task demands detail.`
+};
 
 const history = [];
 function detectMood(t) {
@@ -485,7 +642,7 @@ function detectMood(t) {
 }
 
 function buildMessages(extra) {
-  const sys = [{ role: 'system', content: SYSTEM }];
+  const sys = [{ role: 'system', content: PERSONAS[$('persona').value] || PERSONAS.robotron }];
   if (extra) sys.push({ role: 'system', content: extra });
   return [...sys, ...history.slice(-10)];
 }
@@ -501,9 +658,10 @@ function remainder(full, state) { const s = full.slice(state.idx).trim(); state.
 
 async function streamOllama(text, extra, signal) {
   history.push({ role: 'user', content: text });
+  const model = ($('ollamaModel') && $('ollamaModel').value) || CFG.ollamaModel || 'llama3.2';
   const res = await fetch((CFG.ollamaUrl || 'http://localhost:11434') + '/api/chat', {
     method: 'POST', signal, headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: CFG.ollamaModel || 'qwen2.5:7b', stream: true, messages: buildMessages(extra) })
+    body: JSON.stringify({ model, stream: true, messages: buildMessages(extra) })
   });
   if (!res.ok || !res.body) throw new Error('Ollama ' + res.status + ' — running with OLLAMA_ORIGINS=* ?');
   const reader = res.body.getReader(), dec = new TextDecoder();
@@ -523,10 +681,10 @@ async function streamOllama(text, extra, signal) {
 }
 
 async function streamOpenAI(text, extra, signal) {
-  if (!CFG.openaiKey) throw new Error('No OpenAI key set (⚙️ Settings).');
+  if (!secret('openaiKey')) throw new Error('No OpenAI key set (Settings).');
   history.push({ role: 'user', content: text });
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST', signal, headers: { 'Authorization': 'Bearer ' + CFG.openaiKey, 'Content-Type': 'application/json' },
+    method: 'POST', signal, headers: { 'Authorization': 'Bearer ' + secret('openaiKey'), 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: CFG.openaiModel || 'gpt-4o-mini', stream: true, messages: buildMessages(extra) })
   });
   if (!res.ok || !res.body) throw new Error('OpenAI ' + res.status + ': ' + (res.status === 401 ? 'bad key' : ''));
@@ -564,19 +722,24 @@ function offlineReply(t) {
 
 async function webSearch(text) {
   status.textContent = '🌐 Searching the web...';
+  setDot('search', 'warn', 'searching');
   try {
     const r = await fetch((CFG.searchUrl || 'http://localhost:8765') + '/search?q=' + encodeURIComponent(text));
     const j = await r.json();
-    if (!j.results || !j.results.length) return '';
+    lastSources = (j.results || []).slice(0, 5);
+    renderSources(lastSources);
+    setDot('search', lastSources.length ? 'ok' : 'warn', lastSources.length ? `${lastSources.length} results` : 'no results');
+    if (!lastSources.length) return '';
     return 'LIVE WEB SEARCH RESULTS (current, from a real search just now). Use these to answer accurately, '
       + 'and mention that you looked it up:\n\n'
-      + j.results.map((x, i) => `[${i+1}] ${x.title}\n${x.snippet || ''}\n${x.url || ''}`).join('\n\n');
-  } catch (e) { status.textContent = '⚠ Web search failed (run search.py): ' + e.message; return ''; }
+      + lastSources.map((x, i) => `[${i+1}] ${x.title}\n${x.snippet || ''}\n${x.url || ''}`).join('\n\n');
+  } catch (e) { setDot('search', 'err', 'failed'); status.textContent = '⚠ Web search failed (run search.py): ' + e.message; return ''; }
 }
 
 async function respond(text) {
   ensureCtx();
   stopAll();                                  // interrupt anything still talking/streaming
+  lastSources = []; renderSources([]);
   who.textContent = 'You'; speech.textContent = text; logAppend('You', text);
   setMood('thinking', 8000);
   const backend = $('backend').value || 'offline';
@@ -591,7 +754,7 @@ async function respond(text) {
       ? await streamOpenAI(text, extra, currentAbort.signal)
       : await streamOllama(text, extra, currentAbort.signal);
     currentAbort = null; status.textContent = '';
-    logAppend('Robotron', full);
+    logAppend('Robotron', full, lastSources);
   } catch (e) {
     if (e.name === 'AbortError') return;
     status.textContent = '⚠ ' + e.message;
@@ -600,12 +763,60 @@ async function respond(text) {
 }
 
 /* ---------- Transcript ---------- */
-function logAppend(role, text) {
+function logAppend(role, text, sources) {
   const d = document.createElement('div'); d.className = 'turn';
-  d.innerHTML = '<b>' + role + '</b>' + (text || '').replace(/</g, '&lt;');
+  const b = document.createElement('b');
+  b.textContent = role;
+  d.appendChild(b);
+  d.appendChild(document.createTextNode(text || ''));
+  if (sources && sources.length) {
+    const chips = document.createElement('div');
+    chips.className = 'sources';
+    sources.forEach((x, i) => {
+      const a = document.createElement('a');
+      a.className = 'sourceChip'; a.href = x.url || '#'; a.target = '_blank'; a.rel = 'noopener';
+      a.textContent = `[${i+1}] ${x.title || x.url || 'source'}`;
+      chips.appendChild(a);
+    });
+    d.appendChild(chips);
+  }
   const log = $('log'); log.appendChild(d); log.scrollTop = log.scrollHeight;
+  transcriptTurns.push({ role, text: text || '', sources: sources || [], time: new Date().toISOString() });
 }
-$('logBtn').onclick = () => $('log').classList.toggle('open');
+function renderSources(items) {
+  const box = $('sources'); if (!box) return;
+  box.innerHTML = '';
+  (items || []).forEach((x, i) => {
+    const a = document.createElement('a');
+    a.className = 'sourceChip'; a.href = x.url || '#'; a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = `[${i+1}] ${x.title || x.url || 'source'}`;
+    box.appendChild(a);
+  });
+}
+$('exportBtn').onclick = () => {
+  const body = transcriptTurns.map(t => {
+    const src = (t.sources || []).map((x, i) => `  [${i+1}] ${x.title || 'source'} ${x.url || ''}`).join('\n');
+    return `[${t.time}] ${t.role}: ${t.text}` + (src ? `\n${src}` : '');
+  }).join('\n\n');
+  const blob = new Blob([body], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'robotron-transcript.txt'; a.click();
+  URL.revokeObjectURL(a.href);
+};
+$('clearBtn').onclick = () => {
+  history.length = 0; transcriptTurns.length = 0; lastSources = [];
+  $('log').innerHTML = ''; renderSources([]);
+  status.textContent = 'Transcript cleared.'; setTimeout(() => status.textContent = '', 1200);
+};
+$('resetBtn').onclick = () => {
+  localStorage.removeItem('carrieCfg'); sessionStorage.removeItem('robotronKeys');
+  status.textContent = 'Settings reset. Reloading.';
+  setTimeout(() => location.reload(), 500);
+};
+$('testVoiceBtn').onclick = () => {
+  saveCfg();
+  enqueueSpeech("Voice channel online. Humanity remains the unstable dependency.", 'happy');
+};
 
 /* ---------- Input ---------- */
 function submit() { const v = input.value.trim(); if (!v) return; input.value = ''; respond(v); }
@@ -642,20 +853,33 @@ $('handsBtn').onclick = () => {
 /* ---------- Boot ---------- */
 async function pingBrain() {
   const b = $('backend').value;
-  if (b !== 'ollama') { status.textContent = 'Brain: ' + b; return; }
+  if (b === 'offline') { setDot('brain', 'warn', 'offline'); status.textContent = 'Brain: offline'; return; }
+  if (b === 'openai') { setDot('brain', secret('openaiKey') ? 'ok' : 'warn', secret('openaiKey') ? 'OpenAI ready' : 'needs key'); status.textContent = 'Brain: OpenAI'; return; }
   try {
     const r = await fetch((CFG.ollamaUrl || 'http://localhost:11434') + '/api/tags');
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const j = await r.json();
+    const sel = $('ollamaModel');
+    const chosen = sel.value || CFG.ollamaModel || 'llama3.2';
+    if (j.models && j.models.length) {
+      const names = j.models.map(m => m.name);
+      sel.innerHTML = names.map(n => `<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('');
+      sel.value = names.includes(chosen) ? chosen : (names.includes('llama3.2:latest') ? 'llama3.2:latest' : names[0]);
+      CFG.ollamaModel = sel.value;
+    }
+    setDot('brain', 'ok', `${(j.models || []).length} models`);
     status.textContent = '✓ Brain connected · ' + (j.models || []).map(m => m.name).join(', ');
     setTimeout(() => { if (status.textContent.startsWith('✓')) status.textContent = ''; }, 5000);
-  } catch (e) { status.textContent = '⚠ Cannot reach local brain — run start-carrie.sh. (' + e.message + ')'; }
+  } catch (e) { setDot('brain', 'err', 'offline'); status.textContent = 'Cannot reach local brain. Run start-carrie.sh.'; }
 }
 async function pingTts() {
-  try { const r = await fetch((CFG.ttsUrl || 'http://localhost:8766') + '/health'); ttsReady = r.ok; }
-  catch (e) { ttsReady = false; }
+  try {
+    const r = await fetch((CFG.ttsUrl || 'http://localhost:8766') + '/health'); ttsReady = r.ok;
+    setDot('voice', ttsReady ? 'ok' : 'warn', ttsReady ? 'Piper ready' : (secret('elKey') ? 'ElevenLabs' : 'browser'));
+  }
+  catch (e) { ttsReady = false; setDot('voice', secret('elKey') ? 'ok' : 'warn', secret('elKey') ? 'ElevenLabs' : 'browser'); }
 }
-loadCfg(); reflectWeb(); reflectHands(); pingBrain(); pingTts();
+loadCfg(); reflectWeb(); reflectHands(); setDot('search', webOn ? 'ok' : '', webOn ? 'forced on' : 'auto'); pingBrain(); pingTts();
 setInterval(() => { if (Math.random() > 0.7) { face.classList.add('tilt'); setTimeout(() => face.classList.remove('tilt'), 700); } }, 6000);
 window.addEventListener('load', () => setTimeout(() => sayLine("Systems online. Try to make it worth my processing cycles.", 'happy'), 700));
 </script>

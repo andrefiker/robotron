@@ -4,6 +4,8 @@ Robotron is a no-build talking avatar: a cynical animated robot face that listen
 
 The original Claude handoff bundle is preserved at [docs/Robotron-Replicate-Bundle.md](docs/Robotron-Replicate-Bundle.md).
 
+The `enhanced-command-deck` branch adds a denser command-console interface with system status lights, persona modes, Ollama model discovery, source chips, transcript export/clear/reset, voice testing, and opt-in API-key persistence.
+
 ## Run
 
 ```bash
