@@ -527,28 +527,40 @@ function ensureCtx() {
 
 /* ---------- Browser voices ---------- */
 let voices = [];
+const browserTts = ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
 function loadVoices() {
-  voices = speechSynthesis.getVoices();
-  const sel = $('voiceSel'); sel.innerHTML = '';
+  const sel = $('voiceSel');
+  if (!sel) return;
+  sel.innerHTML = '';
+  if (!browserTts) {
+    const o = document.createElement('option');
+    o.value = '';
+    o.textContent = 'Browser TTS unavailable';
+    sel.appendChild(o);
+    sel.disabled = true;
+    return;
+  }
+  voices = window.speechSynthesis.getVoices();
   voices.forEach((v,i) => { const o = document.createElement('option'); o.value=i; o.textContent=`${v.name} (${v.lang})`; sel.appendChild(o); });
   let idx = voices.findIndex(v => /male|daniel|alex|fred|david|rishi|mark|guy|george|arthur/i.test(v.name) && !/female/i.test(v.name) && /en/i.test(v.lang));
   if (idx < 0) idx = voices.findIndex(v => /en[-_]/i.test(v.lang));
   sel.value = CFG.voiceIdx != null ? CFG.voiceIdx : (idx >= 0 ? idx : 0);
 }
-speechSynthesis.onvoiceschanged = loadVoices; loadVoices();
+if (browserTts) window.speechSynthesis.onvoiceschanged = loadVoices;
+loadVoices();
 
 /* ---------- Speak one chunk → resolves when finished ---------- */
 let currentAudio = null;
 function speakBrowser(text) {
   return new Promise(res => {
-    if (!('speechSynthesis' in window)) return res();
-    const u = new SpeechSynthesisUtterance(text);
+    if (!browserTts) return res();
+    const u = new window.SpeechSynthesisUtterance(text);
     const v = voices[$('voiceSel').value]; if (v) u.voice = v;
     u.pitch = 0.5; u.rate = 0.9;
     u.onstart = startMouthRandom;
     u.onend = () => { stopMouth(); res(); };
     u.onerror = () => { stopMouth(); res(); };
-    speechSynthesis.speak(u);
+    window.speechSynthesis.speak(u);
   });
 }
 function speakAudioBlob(blob) {            // amplitude-driven mouth from the actual audio
@@ -614,7 +626,7 @@ async function pump() {
 function stopAll() {
   speakQueue.length = 0; speaking = false;
   if (currentAbort) { try { currentAbort.abort(); } catch (e) {} currentAbort = null; }
-  try { speechSynthesis.cancel(); } catch (e) {}
+  try { if (browserTts) window.speechSynthesis.cancel(); } catch (e) {}
   if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
   stopMouth();
   status.textContent = 'Stopped.'; setTimeout(() => { if (status.textContent === 'Stopped.') status.textContent = ''; }, 1000);
