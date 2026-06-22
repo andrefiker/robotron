@@ -1245,15 +1245,24 @@ if (SR) {
   };
   rec.onerror = ev => {
     listening = false; micBtn.classList.remove('on'); face.classList.remove('listening'); speech.classList.remove('interim');
-    setAppState('error', 'mic error');
-    if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
+    if (ev.error === 'no-speech') {
+      setAppState('idle', handsFree ? 'listening' : 'idle');
+      status.textContent = handsFree ? 'No speech heard. Listening again.' : 'No speech heard.';
+      setTimeout(() => {
+        if (status.textContent === 'No speech heard.' || status.textContent === 'No speech heard. Listening again.') status.textContent = '';
+      }, 1400);
+    } else if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
+      setAppState('error', 'mic blocked');
       status.textContent = '⚠ Mic blocked — allow microphone for this site (or it needs http://localhost).';
       handsFree = false; reflectHands();
     } else if (ev.error === 'audio-capture') {
+      setAppState('error', 'mic missing');
       status.textContent = '⚠ No microphone input detected by the browser.';
     } else if (ev.error === 'network') {
+      setAppState('error', 'mic network');
       status.textContent = '⚠ Browser speech recognition network service failed.';
     } else if (ev.error) {
+      setAppState('error', 'mic error');
       status.textContent = '⚠ Mic error: ' + ev.error;
     }
   };
