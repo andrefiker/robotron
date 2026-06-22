@@ -21,6 +21,27 @@ PORT = 8766
 VOICE = None
 ESPEAK = shutil.which("espeak-ng") or shutil.which("espeak")
 DEFAULT_ELEVEN_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"
+
+def load_env_file(path):
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            for raw in f:
+                line = raw.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip()
+                if not key or key in os.environ:
+                    continue
+                if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+                    value = value[1:-1]
+                os.environ[key] = value
+    except FileNotFoundError:
+        pass
+
+load_env_file(os.path.join(os.path.dirname(__file__), ".env"))
+
 ELEVEN_KEY = os.environ.get("ELEVENLABS_API_KEY") or os.environ.get("ELEVEN_API_KEY")
 ELEVEN_VOICE_ID = os.environ.get("ELEVENLABS_VOICE_ID", DEFAULT_ELEVEN_VOICE_ID)
 ELEVEN_MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_flash_v2_5")

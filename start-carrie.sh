@@ -14,6 +14,13 @@ export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 export PULSE_RUNTIME_PATH="${PULSE_RUNTIME_PATH:-$XDG_RUNTIME_DIR/pulse}"
 export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"
 
+if [ -f "$APP_DIR/.env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  . "$APP_DIR/.env"
+  set +a
+fi
+
 start_detached() {
   local log_file="$1"
   shift

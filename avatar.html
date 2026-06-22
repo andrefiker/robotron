@@ -558,7 +558,8 @@ const keyFields = ['openaiKey','elKey'];
 const checkFields = ['roboFx','bargeIn'];
 let webOn = CFG.web === '1';
 let handsFree = CFG.hf === '1';
-let ttsReady = false;   // set true once a local Piper proxy answers
+let ttsReady = false;
+let ttsEngine = '';
 let lastSources = [];
 const transcriptTurns = [];
 const ELEVEN_PRESET_VOICES = [
@@ -942,7 +943,10 @@ async function piperBlob(text) {
 }
 async function speakOne(item) {
   setMood(item.mood || detectMood(item.text), 3600);
-  if (secret('elKey')) {
+  if (!ttsEngine) {
+    try { await pingTts(); } catch (e) {}
+  }
+  if (secret('elKey') || ttsEngine.includes('elevenlabs')) {
     try { return await speakAudioBlob(await elevenBlob(item.text), true); }
     catch (e) {
       status.textContent = e.message + '. Using browser voice, not robotic local TTS.';
@@ -950,7 +954,7 @@ async function speakOne(item) {
     }
   }
   if (elevenVoiceId()) {
-    status.textContent = 'ElevenLabs key missing. Using browser voice, not robotic local TTS.';
+    status.textContent = 'ElevenLabs key missing. Paste it in Voice settings or add ELEVENLABS_API_KEY to .env.';
     return speakBrowser(item.text, item.mood || detectMood(item.text));
   }
   if (ttsReady)               { try { return await speakAudioBlob(await piperBlob(item.text)); } catch (e) {} }
@@ -1349,12 +1353,16 @@ async function pingTts() {
     const r = await fetch((CFG.ttsUrl || 'http://localhost:8766') + '/health');
     const engine = await r.text();
     ttsReady = r.ok;
-    const elevenReady = engine.includes('elevenlabs') || (secret('elKey') && elevenVoiceId());
-    setDot('voice', elevenReady ? 'ok' : 'warn', elevenReady ? `ElevenLabs: ${CFG.elVoiceName || 'voice'}` : secret('elKey') ? 'ElevenLabs error' : 'ElevenLabs key needed');
+    ttsEngine = engine;
+    const proxyEleven = engine.includes('elevenlabs');
+    const uiEleven = secret('elKey') && elevenVoiceId();
+    const elevenReady = proxyEleven || uiEleven;
+    setDot('voice', elevenReady ? 'ok' : 'warn', elevenReady ? (proxyEleven ? `ElevenLabs proxy: ${CFG.elVoiceName || 'voice'}` : `ElevenLabs: ${CFG.elVoiceName || 'voice'}`) : secret('elKey') ? 'ElevenLabs error' : 'Add ElevenLabs key');
   }
   catch (e) {
     ttsReady = false;
-    setDot('voice', (secret('elKey') && elevenVoiceId()) ? 'ok' : 'warn', (secret('elKey') && elevenVoiceId()) ? `ElevenLabs: ${CFG.elVoiceName || 'voice'}` : 'ElevenLabs key needed');
+    ttsEngine = '';
+    setDot('voice', (secret('elKey') && elevenVoiceId()) ? 'ok' : 'warn', (secret('elKey') && elevenVoiceId()) ? `ElevenLabs: ${CFG.elVoiceName || 'voice'}` : 'Add ElevenLabs key');
   }
 }
 restoreTranscript();
